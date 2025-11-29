@@ -81,13 +81,17 @@ export const useSettings = create<{
 export const useUI = create<{
   isSidebarOpen: boolean;
   activeTab: 'settings' | 'integrations' | 'transcription';
+  isProcessing: boolean;
   toggleSidebar: () => void;
   setActiveTab: (tab: 'settings' | 'integrations' | 'transcription') => void;
+  setProcessing: (isProcessing: boolean) => void;
 }>(set => ({
   isSidebarOpen: true,
   activeTab: 'settings',
+  isProcessing: false,
   toggleSidebar: () => set(state => ({ isSidebarOpen: !state.isSidebarOpen })),
   setActiveTab: activeTab => set({ activeTab }),
+  setProcessing: isProcessing => set({ isProcessing }),
 }));
 
 /**
@@ -236,6 +240,7 @@ export interface TranscriptEntry {
   timestamp: string;
   topic?: string;
   language: string;
+  speaker: string;
 }
 
 const detectTopic = (text: string): string | undefined => {
@@ -254,7 +259,7 @@ export const useTranscriptionStore = create<{
   isListening: boolean;
   language: string;
   provider: TranscriptionProvider;
-  addEntry: (text: string, isFinal: boolean, lang: string) => void;
+  addEntry: (text: string, isFinal: boolean, lang: string, speaker?: string) => void;
   updateLastEntry: (text: string) => void;
   setListening: (listening: boolean) => void;
   setLanguage: (lang: string) => void;
@@ -269,7 +274,7 @@ export const useTranscriptionStore = create<{
   setLanguage: (language) => set({ language }),
   setProvider: (provider) => set({ provider }),
   clearEntries: () => set({ entries: [] }),
-  addEntry: (text, isFinal, lang) => set(state => {
+  addEntry: (text, isFinal, lang, speaker = 'Speaker') => set(state => {
     const topic = isFinal ? detectTopic(text) : undefined;
     const newEntry: TranscriptEntry = {
       id: Math.random().toString(36).substring(7),
@@ -277,12 +282,13 @@ export const useTranscriptionStore = create<{
       isFinal,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
       topic,
-      language: lang
+      language: lang,
+      speaker
     };
     
     // If we have an existing non-final entry, replace it with this one if this is also non-final
     // or append if this is final. 
-    // Simplified logic: Always append new entry if previous was final.
+    // Logic: Always append new entry if previous was final.
     // If previous was interim, replace it.
     const lastEntry = state.entries[state.entries.length - 1];
     if (lastEntry && !lastEntry.isFinal) {

@@ -6,14 +6,17 @@ import { AudioRecorder } from './audio-recorder';
 import { ASSEMBLY_AI_API_KEY } from './constants';
 import EventEmitter from 'eventemitter3';
 
-export class AssemblyAIClient extends EventEmitter {
+export class AssemblyAIClient {
   private socket: WebSocket | null = null;
   private audioRecorder: AudioRecorder | null = null;
   private isConnected = false;
+  private emitter = new EventEmitter();
 
-  constructor() {
-    super();
-  }
+  public on = this.emitter.on.bind(this.emitter);
+  public off = this.emitter.off.bind(this.emitter);
+  private emit = this.emitter.emit.bind(this.emitter);
+
+  constructor() {}
 
   async connect(sampleRate: number = 16000, lang?: string, stream?: MediaStream) {
     if (this.isConnected) return;
@@ -21,19 +24,14 @@ export class AssemblyAIClient extends EventEmitter {
     // Use default 'en_us' if lang is 'auto' or not provided, as AssemblyAI V2 Streaming defaults to English
     // unless specified. V2 doesn't have "auto" streaming detection out of the box without specific config.
     // We will pass it if it's a specific code.
-    let url = `wss://api.assemblyai.com/v2/realtime/ws?sample_rate=${sampleRate}&token=${ASSEMBLY_AI_API_KEY}`;
+    // Enable speaker labels for diarization
+    let url = `wss://api.assemblyai.com/v2/realtime/ws?sample_rate=${sampleRate}&token=${ASSEMBLY_AI_API_KEY}&speaker_labels=true`;
     
     if (lang && lang !== 'auto') {
         // AssemblyAI uses simplified codes like 'de', 'es', etc. for some, but follows BCP-47 for others.
         // We will pass the code as provided from the list.
-        // Note: For best results, strip region if not needed, but API usually handles standard codes.
-        url += `&word_boost=${JSON.stringify([])}`; // Optional param
-        // Note: 'language_code' is not a query param for the websocket URL in V2, 
-        // it's usually sent in the first message or handled via different endpoint/params depending on version.
-        // HOWEVER, for this sandbox implementation, we will try to append it if supported or rely on English default.
-        // AssemblyAI V2 documentation suggests adding &word_boost or other params. 
-        // Language support in streaming is often specific. We will try query param.
-        // If it fails, it defaults to English.
+        // Also enabling format_turns (punctuations)
+        url += `&word_boost=${JSON.stringify([])}`; 
     }
 
     try {
@@ -52,10 +50,12 @@ export class AssemblyAIClient extends EventEmitter {
     this.socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
+        const speaker = data.speaker || '';
+        
         if (data.message_type === 'FinalTranscript') {
-            this.emit('transcript', { text: data.text, isFinal: true });
+            this.emit('transcript', { text: data.text, isFinal: true, speaker });
         } else if (data.message_type === 'PartialTranscript') {
-            this.emit('transcript', { text: data.text, isFinal: false });
+            this.emit('transcript', { text: data.text, isFinal: false, speaker });
         } else if (data.message_type === 'SessionBegins') {
             console.log('AssemblyAI Session ID:', data.session_id);
         }

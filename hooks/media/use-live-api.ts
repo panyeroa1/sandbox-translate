@@ -24,7 +24,7 @@ import { LiveConnectConfig, Modality, LiveServerToolCall } from '@google/genai';
 import { AudioStreamer } from '../../lib/audio-streamer';
 import { audioContext } from '../../lib/utils';
 import VolMeterWorket from '../../lib/worklets/vol-meter';
-import { useLogStore, useSettings } from '@/lib/state';
+import { useLogStore, useSettings, useUI } from '@/lib/state';
 
 export type UseLiveApiResults = {
   client: GenAILiveClient;
@@ -44,6 +44,7 @@ export function useLiveApi({
   apiKey: string;
 }): UseLiveApiResults {
   const { model } = useSettings();
+  const { setProcessing } = useUI();
   const client = useMemo(() => new GenAILiveClient(apiKey, model), [apiKey, model]);
 
   const audioStreamerRef = useRef<AudioStreamer | null>(null);
@@ -87,16 +88,22 @@ export function useLiveApi({
     };
 
     const onAudio = (data: ArrayBuffer) => {
+      setProcessing(false); // Clear processing state when audio is received
       if (audioStreamerRef.current) {
         audioStreamerRef.current.addPCM16(new Uint8Array(data));
       }
     };
+    
+    const onContent = () => {
+       setProcessing(false);
+    }
 
     // Bind event listeners
     client.on('open', onOpen);
     client.on('close', onClose);
     client.on('interrupted', stopAudioStreamer);
     client.on('audio', onAudio);
+    client.on('content', onContent);
 
     const onToolCall = (toolCall: LiveServerToolCall) => {
       const functionResponses: any[] = [];
@@ -145,9 +152,10 @@ export function useLiveApi({
       client.off('close', onClose);
       client.off('interrupted', stopAudioStreamer);
       client.off('audio', onAudio);
+      client.off('content', onContent);
       client.off('toolcall', onToolCall);
     };
-  }, [client]);
+  }, [client, setProcessing]);
 
   const connect = useCallback(async () => {
     if (!config) {

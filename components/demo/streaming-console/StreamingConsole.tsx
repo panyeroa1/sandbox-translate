@@ -5,8 +5,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Modality } from '@google/genai';
 import { useLiveAPIContext } from '../../../contexts/LiveAPIContext';
-import { useSettings, useTools } from '@/lib/state';
+import { useSettings, useTools, useUI } from '@/lib/state';
 import { KJUR } from 'jsrsasign';
+import cn from 'classnames';
 
 function extractYouTubeId(url: string): string | null {
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -60,6 +61,7 @@ const generateSignature = (sdkKey: string, sdkSecret: string, meetingNumber: str
 export default function StreamingConsole() {
   const { setConfig, volume, client } = useLiveAPIContext();
   const { systemPrompt, voice, mediaMode, mediaVolume, youtubeUrl, audioUrl, zoomConfig, zoomCredentials, setZoomConfig, setMediaMode } = useSettings();
+  const { isProcessing } = useUI();
   const { tools } = useTools();
   const zoomRootRef = useRef<HTMLDivElement>(null);
   const audioPlayerRef = useRef<HTMLAudioElement>(null);
@@ -254,6 +256,7 @@ export default function StreamingConsole() {
                 }}>
                    <span className="icon" style={{fontSize: '48px'}}>lock</span>
                    <p>Please enter Zoom Client ID & Secret in Integrations Settings.</p>
+                   {zoomConfig.joinUrl && <p style={{fontSize: '12px', color: 'var(--Blue-400)'}}>Ready to join: {zoomConfig.meetingId}</p>}
                </div>
            ) : (
                 <div id="meetingSDKElement" style={{width: '100%', height: '100%'}} ref={zoomRootRef}>
@@ -305,7 +308,7 @@ export default function StreamingConsole() {
       {mediaMode !== 'zoom' && (
         <div className="active-speaker-overlay">
           <div 
-            className="speaker-indicator"
+            className={cn("speaker-indicator", { thinking: isProcessing })}
             style={{
                transform: `scale(${1 + volume * 2})`,
                opacity: 0.5 + volume * 2
@@ -313,7 +316,9 @@ export default function StreamingConsole() {
           >
             <span className="material-symbols-outlined icon">graphic_eq</span>
           </div>
-          <div className="speaker-label">Eburon (AI)</div>
+          <div className="speaker-label">
+            {isProcessing ? 'Translating...' : 'Eburon (AI)'}
+          </div>
         </div>
       )}
 

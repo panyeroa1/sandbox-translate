@@ -15,7 +15,7 @@ const AVAILABLE_MODELS = [
 ];
 
 export default function Sidebar() {
-  const { isSidebarOpen, toggleSidebar, activeTab, setActiveTab } = useUI();
+  const { isSidebarOpen, toggleSidebar, activeTab, setActiveTab, setProcessing } = useUI();
   const { 
     systemPrompt, 
     model, 
@@ -52,6 +52,27 @@ export default function Sidebar() {
   const recognitionRef = useRef<any>(null);
   const assemblyClientRef = useRef<AssemblyAIClient | null>(null);
 
+  // Helper to parse Zoom URL
+  const handleZoomLinkChange = (url: string) => {
+     let meetingId = '';
+     let passcode = '';
+     
+     // Extract Meeting ID: matches /j/123456789 or /wc/123456789 or /my/123456789
+     // Added /wc/ support as per user URL example
+     const idMatch = url.match(/(?:\/j\/|\/wc\/|\/my\/)(\d+)/);
+     if (idMatch) meetingId = idMatch[1];
+     
+     // Extract Passcode: matches ?pwd=...
+     const pwdMatch = url.match(/[?&]pwd=([^#&]+)/);
+     if (pwdMatch) passcode = pwdMatch[1];
+
+     setZoomConfig({ 
+        joinUrl: url,
+        meetingId: meetingId || zoomConfig.meetingId,
+        passcode: passcode || zoomConfig.passcode 
+     });
+  };
+
   // Initialize Speech Recognition (Web Speech API)
   useEffect(() => {
     if (typeof window !== 'undefined' && activeTab === 'transcription' && provider === 'web_speech') {
@@ -71,18 +92,19 @@ export default function Sidebar() {
           for (let i = event.resultIndex; i < event.results.length; ++i) {
             if (event.results[i].isFinal) {
               const finalText = event.results[i][0].transcript;
-              addEntry(finalText, true, language);
+              addEntry(finalText, true, language, 'You');
               
               // BRIDGE TO GEMINI LIVE: Send text as input if connected
               if (connected && liveClient) {
                  liveClient.send([{ text: finalText }]);
+                 setProcessing(true);
               }
             } else {
               interimTranscript += event.results[i][0].transcript;
             }
           }
           if (interimTranscript) {
-             addEntry(interimTranscript, false, language);
+             addEntry(interimTranscript, false, language, 'You');
           }
         };
 
@@ -116,64 +138,92 @@ export default function Sidebar() {
             recognitionRef.current = null;
         }
     }
-  }, [activeTab, language, addEntry, provider, connected, liveClient]);
+  }, [activeTab, language, addEntry, provider, connected, liveClient, setProcessing]);
 
-  // Handle Toggle Listening logic
-  useEffect(() => {
-    // Web Speech API Logic
-    if (provider === 'web_speech') {
-        const recognition = recognitionRef.current;
-        if (recognition) {
-          if (isListening) {
-            try { recognition.start(); } catch(e) {}
-          } else {
-            try { recognition.stop(); } catch(e) {}
+  // Handle Toggle Listening logic (Start/Stop)
+  const toggleRecording = async () => {
+    if (!isListening) {
+      // START RECORDING
+      setListening(true);
+      
+      // Web Speech API Logic
+      if (provider === 'web_speech') {
+          try { recognitionRef.current?.start(); } catch(e) {}
+      }
+
+      // AssemblyAI Logic
+      if (provider === 'assembly_ai') {
+          if (!assemblyClientRef.current) {
+              const client = new AssemblyAIClient();
+              client.on('transcript', (data: { text: string; isFinal: boolean; speaker?: string }) => {
+                  const speakerLabel = data.speaker 
+                      ? `Speaker ${data.speaker}` 
+                      : (mediaMode === 'youtube' || mediaMode === 'zoom' ? 'System' : 'Speaker');
+
+                  addEntry(data.text, data.isFinal, language, speakerLabel);
+                  
+                  // BRIDGE TO GEMINI LIVE: Send text as input if connected
+                  if (data.isFinal && connected && liveClient) {
+                      liveClient.send([{ text: data.text }]);
+                      setProcessing(true);
+                  }
+              });
+              client.on('error', (err) => {
+                  console.error('AssemblyAI Error:', err);
+                  setListening(false);
+              });
+              
+              // AUDIO SOURCE SELECTION
+              let stream: MediaStream | undefined;
+
+              if (mediaMode === 'audio') {
+                  // Integrated Audio Player
+                  const audioEl = document.getElementById('integrated-audio-player') as HTMLAudioElement;
+                  if (audioEl && (audioEl as any).captureStream) {
+                      stream = (audioEl as any).captureStream();
+                  } else if (audioEl && (audioEl as any).mozCaptureStream) {
+                      stream = (audioEl as any).mozCaptureStream();
+                  }
+              } else if (mediaMode === 'youtube' || mediaMode === 'zoom') {
+                   // For Embedded/Iframe content, we must ask user to share system audio
+                   try {
+                     stream = await navigator.mediaDevices.getDisplayMedia({ 
+                        video: true, 
+                        audio: { 
+                           echoCancellation: false, 
+                           noiseSuppression: false, 
+                           autoGainControl: false 
+                        } 
+                     });
+                   } catch(err) {
+                     console.warn("User cancelled display media selection or not supported.", err);
+                     // Fallback to Mic will happen if stream remains undefined
+                   }
+              }
+
+              client.connect(16000, language, stream);
+              assemblyClientRef.current = client;
           }
-        }
+      }
+    } else {
+      // STOP RECORDING
+      setListening(false);
+      
+      if (provider === 'web_speech') {
+          try { recognitionRef.current?.stop(); } catch(e) {}
+      }
+      if (provider === 'assembly_ai') {
+          if (assemblyClientRef.current) {
+              assemblyClientRef.current.disconnect();
+              assemblyClientRef.current = null;
+          }
+      }
     }
+  };
 
-    // AssemblyAI Logic
-    if (provider === 'assembly_ai') {
-        if (isListening) {
-            if (!assemblyClientRef.current) {
-                const client = new AssemblyAIClient();
-                client.on('transcript', (data: { text: string; isFinal: boolean }) => {
-                    addEntry(data.text, data.isFinal, language);
-                    
-                    // BRIDGE TO GEMINI LIVE: Send text as input if connected
-                    if (data.isFinal && connected && liveClient) {
-                        liveClient.send([{ text: data.text }]);
-                    }
-                });
-                client.on('error', (err) => {
-                    console.error('AssemblyAI Error:', err);
-                    setListening(false);
-                });
-                
-                // Try to capture audio from the integrated player if mode matches
-                let stream: MediaStream | undefined;
-                if (mediaMode === 'audio') {
-                    const audioEl = document.getElementById('integrated-audio-player') as HTMLAudioElement;
-                    if (audioEl && (audioEl as any).captureStream) {
-                        stream = (audioEl as any).captureStream();
-                    } else if (audioEl && (audioEl as any).mozCaptureStream) {
-                        stream = (audioEl as any).mozCaptureStream();
-                    }
-                }
-
-                client.connect(16000, language, stream);
-                assemblyClientRef.current = client;
-            }
-        } else {
-            if (assemblyClientRef.current) {
-                assemblyClientRef.current.disconnect();
-                assemblyClientRef.current = null;
-            }
-        }
-    }
-
+  // Sync state with effect cleanup
+  useEffect(() => {
     return () => {
-       // Cleanup on unmount or provider switch
        if (recognitionRef.current && provider !== 'web_speech') {
             recognitionRef.current.onend = null;
             try { recognitionRef.current.stop(); } catch(e) {}
@@ -183,8 +233,7 @@ export default function Sidebar() {
            assemblyClientRef.current = null;
        }
     }
-  }, [isListening, provider, language, addEntry, connected, liveClient, mediaMode]);
-
+  }, [provider]);
 
   const handleSaveTool = (updatedTool: FunctionCall) => {
     if (editingTool) {
@@ -345,42 +394,36 @@ export default function Sidebar() {
                  <div className="integration-config fade-in">
                     <h4 className="sidebar-section-title">Zoom Configuration</h4>
                      <label>
-                      Client ID (SDK Key)
+                      Zoom Invite Link
                       <input 
                         type="text" 
-                        value={zoomCredentials.clientId}
-                        onChange={(e) => setZoomCredentials({ ...zoomCredentials, clientId: e.target.value })}
-                        placeholder="Zoom Client ID" 
+                        value={zoomConfig.joinUrl}
+                        onChange={(e) => handleZoomLinkChange(e.target.value)}
+                        placeholder="Paste Zoom Invite Link here..." 
                       />
                     </label>
-                    <label>
-                      Client Secret
-                      <input 
-                        type="text" 
-                        value={zoomCredentials.clientSecret}
-                        onChange={(e) => setZoomCredentials({ ...zoomCredentials, clientSecret: e.target.value })}
-                        placeholder="Zoom Client Secret" 
-                      />
-                    </label>
-                    <hr style={{border: 'none', borderTop: '1px solid var(--gray-700)', margin: '10px 0'}} />
-                    <label>
-                      Meeting ID
-                      <input 
-                        type="text" 
-                        value={zoomConfig.meetingId}
-                        onChange={(e) => setZoomConfig({ meetingId: e.target.value })}
-                        placeholder="123 456 7890" 
-                      />
-                    </label>
-                    <label>
-                      Passcode
-                      <input 
-                        type="text" 
-                        value={zoomConfig.passcode}
-                        onChange={(e) => setZoomConfig({ passcode: e.target.value })}
-                        placeholder="Optional" 
-                      />
-                    </label>
+                    {/* Auto-extracted fields, now simplified */}
+                    <div style={{display: 'flex', gap: '10px'}}>
+                         <label style={{flex: 1}}>
+                            Meeting ID
+                            <input 
+                                type="text" 
+                                value={zoomConfig.meetingId}
+                                readOnly
+                                style={{opacity: 0.7}}
+                            />
+                        </label>
+                        <label style={{flex: 1}}>
+                            Passcode
+                            <input 
+                                type="text" 
+                                value={zoomConfig.passcode}
+                                readOnly
+                                style={{opacity: 0.7}}
+                            />
+                        </label>
+                    </div>
+
                     <label>
                       Display Name
                       <input 
@@ -390,9 +433,30 @@ export default function Sidebar() {
                         placeholder="AI Agent" 
                       />
                     </label>
-                    <p className="config-hint">
-                      Requires Zoom Client ID & Secret to generate a signature locally for this sandbox.
-                    </p>
+                    
+                     <details>
+                        <summary style={{color: 'var(--gray-500)', fontSize: '12px', cursor: 'pointer', margin: '10px 0'}}>
+                            Advanced: Zoom SDK Credentials
+                        </summary>
+                         <div style={{display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '10px'}}>
+                            <label>
+                            Client ID
+                            <input 
+                                type="text" 
+                                value={zoomCredentials.clientId}
+                                onChange={(e) => setZoomCredentials({ ...zoomCredentials, clientId: e.target.value })}
+                            />
+                            </label>
+                            <label>
+                            Client Secret
+                            <input 
+                                type="text" 
+                                value={zoomCredentials.clientSecret}
+                                onChange={(e) => setZoomCredentials({ ...zoomCredentials, clientSecret: e.target.value })}
+                            />
+                            </label>
+                         </div>
+                    </details>
                  </div>
               )}
 
@@ -434,7 +498,7 @@ export default function Sidebar() {
               <div className="transcription-controls">
                 <button 
                    className={c('rec-button', { recording: isListening })}
-                   onClick={() => setListening(!isListening)}
+                   onClick={toggleRecording}
                 >
                   <span className="icon">
                      {isListening ? 'stop_circle' : 'radio_button_checked'}
@@ -471,6 +535,7 @@ export default function Sidebar() {
                  {entries.map((entry, idx) => (
                     <div key={idx} className={c('transcript-entry', { final: entry.isFinal })}>
                       <div className="entry-header">
+                        <span className="speaker-name">{entry.speaker}</span>
                         <span className="timestamp">{entry.timestamp}</span>
                         {entry.topic && (
                           <span className={c('topic-badge', entry.topic.toLowerCase())}>
