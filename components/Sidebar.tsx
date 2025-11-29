@@ -146,12 +146,12 @@ export default function Sidebar() {
       // START RECORDING
       setListening(true);
       
-      // Web Speech API Logic
+      // Web Speech API Logic (Source: Mic/Default Device)
       if (provider === 'web_speech') {
           try { recognitionRef.current?.start(); } catch(e) {}
       }
 
-      // AssemblyAI Logic
+      // AssemblyAI Logic (Source: Auto-Detect Device Audio)
       if (provider === 'assembly_ai') {
           if (!assemblyClientRef.current) {
               const client = new AssemblyAIClient();
@@ -173,33 +173,58 @@ export default function Sidebar() {
                   setListening(false);
               });
               
-              // AUDIO SOURCE SELECTION
+              // SMART DEVICE AUDIO AUTO-DETECT
               let stream: MediaStream | undefined;
 
               if (mediaMode === 'audio') {
-                  // Integrated Audio Player
+                  // Strategy 1: Capture Integrated Audio Player
                   const audioEl = document.getElementById('integrated-audio-player') as HTMLAudioElement;
-                  if (audioEl && (audioEl as any).captureStream) {
-                      stream = (audioEl as any).captureStream();
-                  } else if (audioEl && (audioEl as any).mozCaptureStream) {
-                      stream = (audioEl as any).mozCaptureStream();
+                  if (audioEl) {
+                      if ((audioEl as any).captureStream) {
+                        stream = (audioEl as any).captureStream();
+                      } else if ((audioEl as any).mozCaptureStream) {
+                        stream = (audioEl as any).mozCaptureStream();
+                      }
                   }
-              } else if (mediaMode === 'youtube' || mediaMode === 'zoom') {
-                   // For Embedded/Iframe content, we must ask user to share system audio
+              } 
+              
+              if (!stream && (mediaMode === 'youtube' || mediaMode === 'zoom')) {
+                   // Strategy 2: Capture System Audio via Screen Share (Tab Audio)
+                   // This is required for Iframe content (YouTube) or external Zoom rendering
                    try {
-                     stream = await navigator.mediaDevices.getDisplayMedia({ 
-                        video: true, 
+                     const displayMedia = await navigator.mediaDevices.getDisplayMedia({ 
+                        video: true, // Video is required to get display media
                         audio: { 
                            echoCancellation: false, 
                            noiseSuppression: false, 
-                           autoGainControl: false 
+                           autoGainControl: false,
+                           // @ts-ignore
+                           suppressLocalAudioPlayback: false 
                         } 
                      });
+                     
+                     // Check if user shared audio
+                     if (displayMedia.getAudioTracks().length > 0) {
+                         // We only need the audio track
+                         stream = new MediaStream(displayMedia.getAudioTracks());
+                         // We can stop the video track immediately to save resources/bandwidth
+                         displayMedia.getVideoTracks().forEach(track => track.stop());
+                     } else {
+                         alert("No audio shared! Please check 'Share tab audio' in the browser dialog.");
+                         displayMedia.getTracks().forEach(track => track.stop());
+                         setListening(false);
+                         return;
+                     }
+
                    } catch(err) {
                      console.warn("User cancelled display media selection or not supported.", err);
-                     // Fallback to Mic will happen if stream remains undefined
+                     setListening(false);
+                     return;
                    }
               }
+
+              // Fallback (Strategy 3): Default Microphone (if no stream found above)
+              // This happens if mediaMode is none or acquisition failed but we want to continue with mic
 
               client.connect(16000, language, stream);
               assemblyClientRef.current = client;
@@ -521,13 +546,22 @@ export default function Sidebar() {
                 </button>
               </div>
               
+              {/* Audio Source Indicator */}
+              <div style={{fontSize: '11px', color: 'var(--gray-500)', marginBottom: '8px', paddingLeft: '4px'}}>
+                   Source: {provider === 'assembly_ai' 
+                      ? ((mediaMode === 'youtube' || mediaMode === 'zoom') ? 'Device Audio (Screen Share)' : 'Auto-Detect') 
+                      : 'Microphone (Default)'}
+              </div>
+              
               <div className="transcript-log">
                  {entries.length === 0 && (
                    <div className="empty-state">
                      <span className="icon">graphic_eq</span>
-                     <p>Start recording to see real-time transcription.</p>
-                     {provider === 'assembly_ai' && (
-                        <p style={{fontSize: '11px', color: 'var(--Blue-500)'}}>Using AssemblyAI Real-time</p>
+                     <p>Waiting for Device Audio...</p>
+                     {provider === 'assembly_ai' && (mediaMode === 'youtube' || mediaMode === 'zoom') && (
+                        <p style={{fontSize: '11px', color: 'var(--Blue-400)', maxWidth: '200px'}}>
+                           Select the tab with audio when the browser dialog appears.
+                        </p>
                      )}
                      {connected && <p style={{fontSize: '11px', color: 'var(--Green-500)', marginTop: '4px'}}>Gemini Translation Active</p>}
                    </div>
