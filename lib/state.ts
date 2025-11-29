@@ -76,9 +76,9 @@ export const useSettings = create<{
  */
 export const useUI = create<{
   isSidebarOpen: boolean;
-  activeTab: 'settings' | 'integrations';
+  activeTab: 'settings' | 'integrations' | 'transcription';
   toggleSidebar: () => void;
-  setActiveTab: (tab: 'settings' | 'integrations') => void;
+  setActiveTab: (tab: 'settings' | 'integrations' | 'transcription') => void;
 }>(set => ({
   isSidebarOpen: true,
   activeTab: 'settings',
@@ -220,4 +220,78 @@ export const useLogStore = create<{
     });
   },
   clearTurns: () => set({ turns: [] }),
+}));
+
+/**
+ * Transcription & Topic Detection
+ */
+export interface TranscriptEntry {
+  id: string;
+  text: string;
+  isFinal: boolean;
+  timestamp: string;
+  topic?: string;
+  language: string;
+}
+
+const detectTopic = (text: string): string | undefined => {
+  const lower = text.toLowerCase();
+  if (lower.includes('zoom') || lower.includes('meet') || lower.includes('call') || lower.includes('join')) return 'Coordination';
+  if (lower.includes('code') || lower.includes('function') || lower.includes('bug') || lower.includes('api')) return 'Development';
+  if (lower.includes('price') || lower.includes('cost') || lower.includes('buy') || lower.includes('sell')) return 'Business';
+  if (lower.includes('hello') || lower.includes('hi ') || lower.includes('bye')) return 'Casual';
+  return undefined;
+};
+
+export const useTranscriptionStore = create<{
+  entries: TranscriptEntry[];
+  isListening: boolean;
+  language: string;
+  addEntry: (text: string, isFinal: boolean, lang: string) => void;
+  updateLastEntry: (text: string) => void;
+  setListening: (listening: boolean) => void;
+  setLanguage: (lang: string) => void;
+  clearEntries: () => void;
+}>((set, get) => ({
+  entries: [],
+  isListening: false,
+  language: 'en-US',
+  setListening: (isListening) => set({ isListening }),
+  setLanguage: (language) => set({ language }),
+  clearEntries: () => set({ entries: [] }),
+  addEntry: (text, isFinal, lang) => set(state => {
+    const topic = isFinal ? detectTopic(text) : undefined;
+    const newEntry: TranscriptEntry = {
+      id: Math.random().toString(36).substring(7),
+      text,
+      isFinal,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      topic,
+      language: lang
+    };
+    
+    // If we have an existing non-final entry, replace it with this one if this is also non-final
+    // or append if this is final. 
+    // Simplified logic: Always append new entry if previous was final.
+    // If previous was interim, replace it.
+    const lastEntry = state.entries[state.entries.length - 1];
+    if (lastEntry && !lastEntry.isFinal) {
+      const updatedEntries = [...state.entries];
+      updatedEntries[state.entries.length - 1] = newEntry;
+      return { entries: updatedEntries };
+    }
+    
+    return { entries: [...state.entries, newEntry] };
+  }),
+  updateLastEntry: (text) => set(state => {
+     if (state.entries.length === 0) return state;
+     const updatedEntries = [...state.entries];
+     const lastIdx = updatedEntries.length - 1;
+     updatedEntries[lastIdx] = { 
+       ...updatedEntries[lastIdx], 
+       text,
+       topic: detectTopic(text) // Update topic in real-time
+     };
+     return { entries: updatedEntries };
+  })
 }));

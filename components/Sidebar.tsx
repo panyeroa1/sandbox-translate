@@ -2,11 +2,11 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
 */
-import { FunctionCall, useSettings, useUI, useTools, MediaMode } from '@/lib/state';
+import { FunctionCall, useSettings, useUI, useTools, MediaMode, useTranscriptionStore } from '@/lib/state';
 import c from 'classnames';
 import { DEFAULT_LIVE_API_MODEL, AVAILABLE_VOICES } from '@/lib/constants';
 import { useLiveAPIContext } from '@/contexts/LiveAPIContext';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import ToolEditorModal from './ToolEditorModal';
 
 const AVAILABLE_MODELS = [
@@ -35,8 +35,78 @@ export default function Sidebar() {
   } = useSettings();
   const { tools, toggleTool, addTool, removeTool, updateTool } = useTools();
   const { connected } = useLiveAPIContext();
+  const { 
+    entries, 
+    isListening, 
+    language, 
+    setListening, 
+    setLanguage, 
+    addEntry, 
+    clearEntries 
+  } = useTranscriptionStore();
 
   const [editingTool, setEditingTool] = useState<FunctionCall | null>(null);
+  const recognitionRef = useRef<any>(null);
+
+  // Initialize Speech Recognition
+  useEffect(() => {
+    if (typeof window !== 'undefined' && activeTab === 'transcription') {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = language;
+
+        recognition.onresult = (event: any) => {
+          let interimTranscript = '';
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+              addEntry(event.results[i][0].transcript, true, language);
+            } else {
+              interimTranscript += event.results[i][0].transcript;
+            }
+          }
+          if (interimTranscript) {
+             addEntry(interimTranscript, false, language);
+          }
+        };
+
+        recognition.onerror = (event: any) => {
+          console.error("Speech recognition error", event.error);
+          if (event.error === 'not-allowed') {
+            setListening(false);
+          }
+        };
+
+        recognition.onend = () => {
+          if (isListening) {
+             try {
+               recognition.start();
+             } catch(e) { /* ignore already started */ }
+          }
+        };
+
+        recognitionRef.current = recognition;
+      }
+    }
+  }, [activeTab, language, addEntry, isListening, setListening]);
+
+  // Toggle Listening
+  useEffect(() => {
+    const recognition = recognitionRef.current;
+    if (recognition) {
+      if (isListening) {
+        try { recognition.start(); } catch(e) {}
+      } else {
+        try { recognition.stop(); } catch(e) {}
+      }
+    }
+    return () => {
+       if (recognition) try { recognition.stop(); } catch(e) {}
+    }
+  }, [isListening]);
+
 
   const handleSaveTool = (updatedTool: FunctionCall) => {
     if (editingTool) {
@@ -68,10 +138,16 @@ export default function Sidebar() {
           >
             Integrations
           </button>
+          <button 
+            className={c('tab-button', { active: activeTab === 'transcription' })}
+            onClick={() => setActiveTab('transcription')}
+          >
+            Transcription
+          </button>
         </div>
 
         <div className="sidebar-content">
-          {activeTab === 'settings' ? (
+          {activeTab === 'settings' && (
             <>
               <div className="sidebar-section">
                 <fieldset disabled={connected}>
@@ -155,7 +231,9 @@ export default function Sidebar() {
                 </button>
               </div>
             </>
-          ) : (
+          )}
+
+          {activeTab === 'integrations' && (
             <div className="sidebar-section">
               <label>
                 Active Integration
@@ -256,6 +334,60 @@ export default function Sidebar() {
                  </div>
               )}
 
+            </div>
+          )}
+
+          {activeTab === 'transcription' && (
+            <div className="sidebar-section full-height">
+              <div className="transcription-controls">
+                <button 
+                   className={c('rec-button', { recording: isListening })}
+                   onClick={() => setListening(!isListening)}
+                >
+                  <span className="icon">
+                     {isListening ? 'stop_circle' : 'radio_button_checked'}
+                  </span>
+                  {isListening ? 'Stop' : 'Rec'}
+                </button>
+                <select 
+                  value={language} 
+                  onChange={(e) => setLanguage(e.target.value)}
+                  className="lang-select"
+                >
+                  <option value="en-US">EN (US)</option>
+                  <option value="en-GB">EN (GB)</option>
+                  <option value="es-ES">Spanish</option>
+                  <option value="fr-FR">French</option>
+                  <option value="de-DE">German</option>
+                  <option value="nl-NL">Dutch</option>
+                  <option value="tl-PH">Tagalog</option>
+                </select>
+                <button onClick={clearEntries} className="clear-button">
+                  <span className="icon">delete_sweep</span>
+                </button>
+              </div>
+              
+              <div className="transcript-log">
+                 {entries.length === 0 && (
+                   <div className="empty-state">
+                     <span className="icon">graphic_eq</span>
+                     <p>Start recording to see real-time transcription.</p>
+                   </div>
+                 )}
+                 {entries.map((entry, idx) => (
+                    <div key={idx} className={c('transcript-entry', { final: entry.isFinal })}>
+                      <div className="entry-header">
+                        <span className="timestamp">{entry.timestamp}</span>
+                        {entry.topic && (
+                          <span className={c('topic-badge', entry.topic.toLowerCase())}>
+                             {entry.topic}
+                          </span>
+                        )}
+                      </div>
+                      <p className="entry-text">{entry.text}</p>
+                    </div>
+                 ))}
+              </div>
             </div>
           )}
         </div>
