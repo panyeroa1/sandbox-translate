@@ -55,7 +55,7 @@ export class AudioRecorder {
 
   constructor(public sampleRate = 16000) {}
 
-  async start(stream?: MediaStream) {
+  async start(stream?: MediaStream, deviceId?: string) {
     // If stream is provided, use it. Otherwise request user media.
     if (!stream && (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia)) {
       throw new Error('Could not request user media');
@@ -63,7 +63,16 @@ export class AudioRecorder {
 
     this.starting = new Promise(async (resolve, reject) => {
       try {
-        this.stream = stream || await navigator.mediaDevices.getUserMedia({ audio: true });
+        if (stream) {
+          this.stream = stream;
+        } else {
+          // Use deviceId if provided, otherwise default
+          const constraints: MediaStreamConstraints = { 
+            audio: deviceId ? { deviceId: { exact: deviceId } } : true 
+          };
+          this.stream = await navigator.mediaDevices.getUserMedia(constraints);
+        }
+
         this.audioContext = await audioContext({ sampleRate: this.sampleRate });
         this.source = this.audioContext.createMediaStreamSource(this.stream);
 

@@ -294,8 +294,28 @@ li {
 .entry-header {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
   margin-bottom: 6px;
+}
+
+.entry-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lang-badge {
+  font-size: 9px;
+  background: var(--gray-700);
+  color: var(--text);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-weight: bold;
+}
+
+.source-icon {
+  font-size: 16px;
+  color: var(--gray-500);
 }
 
 .speaker-name {
@@ -305,10 +325,13 @@ li {
 }
 
 .timestamp {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--gray-500);
   font-family: 'Roboto Mono', monospace;
-  margin-left: auto; /* Push timestamp to right or use flex gap */
+}
+
+.entry-topic-row {
+  margin-bottom: 4px;
 }
 
 .topic-badge {
@@ -320,6 +343,7 @@ li {
   color: var(--gray-200);
   font-weight: 700;
   letter-spacing: 0.5px;
+  display: inline-block;
 }
 
 .topic-badge.coordination { background: #3b2c58; color: #d0bfff; }
@@ -328,9 +352,10 @@ li {
 .topic-badge.casual { background: #2a2f31; color: #a1aab0; }
 
 .entry-text {
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.5;
   color: var(--gray-200);
+  word-break: break-word;
 }
 
 .transcript-entry.final .entry-text {
@@ -640,8 +665,6 @@ li {
 /* Global / General */
 input,
 textarea {
-  /* Resetting generic inputs to inherit if not styled, 
-     but specific classes above override this for sidebar/modal */
   font-family: var(--font-family);
   background: none;
   color: white;
@@ -653,7 +676,6 @@ textarea {
 
 select {
   font-family: inherit;
-  /* Appearance reset handled by classes above */
   cursor: pointer;
 }
 

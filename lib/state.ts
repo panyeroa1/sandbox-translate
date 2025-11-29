@@ -253,31 +253,34 @@ const detectTopic = (text: string): string | undefined => {
 };
 
 export type TranscriptionProvider = 'web_speech' | 'assembly_ai';
-export type TranscriptionInput = 'mic' | 'system';
 
 export const useTranscriptionStore = create<{
   entries: TranscriptEntry[];
   isListening: boolean;
   language: string;
   provider: TranscriptionProvider;
-  transcriptionInput: TranscriptionInput;
+  audioSource: string; // 'system' or deviceId
+  audioDevices: MediaDeviceInfo[];
   addEntry: (text: string, isFinal: boolean, lang: string, speaker?: string) => void;
   updateLastEntry: (text: string) => void;
   setListening: (listening: boolean) => void;
   setLanguage: (lang: string) => void;
   setProvider: (provider: TranscriptionProvider) => void;
-  setTranscriptionInput: (input: TranscriptionInput) => void;
+  setAudioSource: (source: string) => void;
+  setAudioDevices: (devices: MediaDeviceInfo[]) => void;
   clearEntries: () => void;
 }>((set, get) => ({
   entries: [],
   isListening: false,
   language: 'auto',
-  provider: 'web_speech',
-  transcriptionInput: 'mic',
+  provider: 'assembly_ai',
+  audioSource: 'system',
+  audioDevices: [],
   setListening: (isListening) => set({ isListening }),
   setLanguage: (language) => set({ language }),
   setProvider: (provider) => set({ provider }),
-  setTranscriptionInput: (transcriptionInput) => set({ transcriptionInput }),
+  setAudioSource: (audioSource) => set({ audioSource }),
+  setAudioDevices: (audioDevices) => set({ audioDevices }),
   clearEntries: () => set({ entries: [] }),
   addEntry: (text, isFinal, lang, speaker = 'Speaker') => set(state => {
     const topic = isFinal ? detectTopic(text) : undefined;
@@ -291,10 +294,6 @@ export const useTranscriptionStore = create<{
       speaker
     };
     
-    // If we have an existing non-final entry, replace it with this one if this is also non-final
-    // or append if this is final. 
-    // Logic: Always append new entry if previous was final.
-    // If previous was interim, replace it.
     const lastEntry = state.entries[state.entries.length - 1];
     if (lastEntry && !lastEntry.isFinal) {
       const updatedEntries = [...state.entries];
@@ -311,7 +310,7 @@ export const useTranscriptionStore = create<{
      updatedEntries[lastIdx] = { 
        ...updatedEntries[lastIdx], 
        text,
-       topic: detectTopic(text) // Update topic in real-time
+       topic: detectTopic(text) 
      };
      return { entries: updatedEntries };
   })
