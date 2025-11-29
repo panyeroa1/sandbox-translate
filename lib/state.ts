@@ -3,23 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
 */
 import { create } from 'zustand';
+import { zoomTools } from './tools';
 import { customerSupportTools } from './tools/customer-support';
-import { personalAssistantTools } from './tools/personal-assistant';
 import { navigationSystemTools } from './tools/navigation-system';
-
-export type Template = 'customer-support' | 'personal-assistant' | 'navigation-system';
-
-const toolsets: Record<Template, FunctionCall[]> = {
-  'customer-support': customerSupportTools,
-  'personal-assistant': personalAssistantTools,
-  'navigation-system': navigationSystemTools,
-};
-
-const systemPrompts: Record<Template, string> = {
-  'customer-support': 'You are a helpful and friendly customer support agent. Be conversational and concise.',
-  'personal-assistant': 'You are a helpful and friendly personal assistant. Be proactive and efficient.',
-  'navigation-system': 'You are a helpful and friendly navigation assistant. Provide clear and accurate directions.',
-};
+import { personalAssistantTools } from './tools/personal-assistant';
 import { DEFAULT_LIVE_API_MODEL, DEFAULT_VOICE } from './constants';
 import {
   FunctionResponse,
@@ -30,20 +17,58 @@ import {
 /**
  * Settings
  */
+export type MediaMode = 'youtube' | 'zoom' | 'audio';
+
+export interface ZoomConfig {
+  meetingId: string;
+  passcode: string;
+  userName: string;
+  joinUrl: string;
+}
+
 export const useSettings = create<{
   systemPrompt: string;
   model: string;
   voice: string;
+  mediaMode: MediaMode;
+  youtubeUrl: string;
+  audioUrl: string;
+  zoomConfig: ZoomConfig;
+  zoomCredentials: { clientId: string; clientSecret: string };
   setSystemPrompt: (prompt: string) => void;
   setModel: (model: string) => void;
   setVoice: (voice: string) => void;
+  setMediaMode: (mode: MediaMode) => void;
+  setYoutubeUrl: (url: string) => void;
+  setAudioUrl: (url: string) => void;
+  setZoomConfig: (config: Partial<ZoomConfig>) => void;
+  setZoomCredentials: (creds: { clientId: string; clientSecret: string }) => void;
 }>(set => ({
-  systemPrompt: `You are a helpful and friendly AI assistant. Be conversational and concise.`,
+  systemPrompt: `You are Eburon, a helpful AI assistant capable of joining Zoom meetings and interacting with media.`,
   model: DEFAULT_LIVE_API_MODEL,
   voice: DEFAULT_VOICE,
+  mediaMode: 'youtube',
+  youtubeUrl: 'https://www.youtube.com/watch?v=jfKfPfyJRdk',
+  audioUrl: '',
+  zoomConfig: {
+    meetingId: '',
+    passcode: '',
+    userName: 'AI Assistant',
+    joinUrl: '',
+  },
+  zoomCredentials: {
+    clientId: '',
+    clientSecret: '',
+  },
   setSystemPrompt: prompt => set({ systemPrompt: prompt }),
   setModel: model => set({ model }),
   setVoice: voice => set({ voice }),
+  setMediaMode: mediaMode => set({ mediaMode }),
+  setYoutubeUrl: youtubeUrl => set({ youtubeUrl }),
+  setAudioUrl: audioUrl => set({ audioUrl }),
+  setZoomConfig: config =>
+    set(state => ({ zoomConfig: { ...state.zoomConfig, ...config } })),
+  setZoomCredentials: creds => set({ zoomCredentials: creds }),
 }));
 
 /**
@@ -51,10 +76,14 @@ export const useSettings = create<{
  */
 export const useUI = create<{
   isSidebarOpen: boolean;
+  activeTab: 'settings' | 'integrations';
   toggleSidebar: () => void;
+  setActiveTab: (tab: 'settings' | 'integrations') => void;
 }>(set => ({
   isSidebarOpen: true,
+  activeTab: 'settings',
   toggleSidebar: () => set(state => ({ isSidebarOpen: !state.isSidebarOpen })),
+  setActiveTab: activeTab => set({ activeTab }),
 }));
 
 /**
@@ -68,7 +97,7 @@ export interface FunctionCall {
   scheduling?: FunctionResponseScheduling;
 }
 
-
+export type Template = 'customer-support' | 'personal-assistant' | 'navigation-system';
 
 export const useTools = create<{
   tools: FunctionCall[];
@@ -79,11 +108,21 @@ export const useTools = create<{
   removeTool: (toolName: string) => void;
   updateTool: (oldName: string, updatedTool: FunctionCall) => void;
 }>(set => ({
-  tools: customerSupportTools,
+  tools: zoomTools,
   template: 'customer-support',
   setTemplate: (template: Template) => {
-    set({ tools: toolsets[template], template });
-    useSettings.getState().setSystemPrompt(systemPrompts[template]);
+    set({ template });
+    switch (template) {
+      case 'customer-support':
+        set({ tools: customerSupportTools });
+        break;
+      case 'personal-assistant':
+        set({ tools: personalAssistantTools });
+        break;
+      case 'navigation-system':
+        set({ tools: navigationSystemTools });
+        break;
+    }
   },
   toggleTool: (toolName: string) =>
     set(state => ({
@@ -120,13 +159,11 @@ export const useTools = create<{
     })),
   updateTool: (oldName: string, updatedTool: FunctionCall) =>
     set(state => {
-      // Check for name collisions if the name was changed
       if (
         oldName !== updatedTool.name &&
         state.tools.some(tool => tool.name === updatedTool.name)
       ) {
         console.warn(`Tool with name "${updatedTool.name}" already exists.`);
-        // Prevent the update by returning the current state
         return state;
       }
       return {

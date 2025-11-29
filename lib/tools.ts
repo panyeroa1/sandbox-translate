@@ -6,66 +6,27 @@
 import { FunctionResponseScheduling } from '@google/genai';
 import { FunctionCall } from './state';
 
-export const AVAILABLE_TOOLS: FunctionCall[] = [
+export const zoomTools: FunctionCall[] = [
   {
-    name: 'start_return',
-    description: 'Starts the return process for an item, collecting necessary details from the user.',
+    name: 'join_meeting',
+    description: 'Joins a Zoom meeting using the provided meeting ID and passcode.',
     parameters: {
       type: 'OBJECT',
       properties: {
-        orderId: {
+        meetingId: {
           type: 'STRING',
-          description: 'The ID of the order containing the item to be returned.',
+          description: 'The Zoom Meeting ID (numbers only).',
         },
-        itemName: {
+        passcode: {
           type: 'STRING',
-          description: 'The name of the item the user wants to return.',
+          description: 'The passcode for the meeting.',
         },
-        reason: {
+        userName: {
           type: 'STRING',
-          description: 'The reason the user is returning the item.',
-        },
-      },
-      required: ['orderId', 'itemName', 'reason'],
-    },
-    isEnabled: true,
-    scheduling: FunctionResponseScheduling.INTERRUPT,
-  },
-  {
-    name: 'get_order_status',
-    description: 'Provides the current status of a user\'s order, searching by order ID or customer details.',
-    parameters: {
-      type: 'OBJECT',
-      properties: {
-        orderId: {
-          type: 'STRING',
-          description: 'The ID of the order to check. Ask for this first.',
-        },
-        customerName: {
-          type: 'STRING',
-          description: 'The name of the customer, if order ID is not available.',
-        },
-        customerEmail: {
-          type: 'STRING',
-          description: 'The email of the customer, if order ID is not available.',
+          description: 'The display name to use when joining.',
         },
       },
-    },
-    isEnabled: true,
-    scheduling: FunctionResponseScheduling.INTERRUPT,
-  },
-  {
-    name: 'speak_to_representative',
-    description: 'Escalates the conversation to a human customer support representative.',
-    parameters: {
-      type: 'OBJECT',
-      properties: {
-        reason: {
-          type: 'STRING',
-          description: 'A brief summary of the user\'s issue for the representative.',
-        },
-      },
-      required: ['reason'],
+      required: ['meetingId'],
     },
     isEnabled: true,
     scheduling: FunctionResponseScheduling.INTERRUPT,
