@@ -22,7 +22,7 @@ import cn from 'classnames';
 
 import { memo, ReactNode, useEffect, useRef, useState } from 'react';
 import { AudioRecorder } from '../../../lib/audio-recorder';
-import { useUI } from '@/lib/state';
+import { useUI, useSettings } from '@/lib/state';
 
 import { useLiveAPIContext } from '../../../contexts/LiveAPIContext';
 
@@ -35,6 +35,7 @@ function ControlTray({ children }: ControlTrayProps) {
   const [muted, setMuted] = useState(false);
   const connectButtonRef = useRef<HTMLButtonElement>(null);
   const { toggleSidebar } = useUI();
+  const { mediaVolume, setMediaVolume } = useSettings();
 
   const { client, connected, connect, disconnect } = useLiveAPIContext();
 
@@ -78,6 +79,12 @@ function ControlTray({ children }: ControlTrayProps) {
     }
   };
 
+  const getVolumeIcon = () => {
+    if (mediaVolume === 0) return 'volume_off';
+    if (mediaVolume < 0.5) return 'volume_down';
+    return 'volume_up';
+  };
+
   const micButtonTitle = connected
     ? muted
       ? 'Unmute microphone'
@@ -100,6 +107,26 @@ function ControlTray({ children }: ControlTrayProps) {
             <span className="material-symbols-outlined filled">mic_off</span>
           )}
         </button>
+
+        <div className="volume-control">
+          <button 
+            className="action-button volume-button"
+            onClick={() => setMediaVolume(mediaVolume === 0 ? 0.5 : 0)}
+            title="Mute/Unmute Media"
+          >
+            <span className="material-symbols-outlined filled">{getVolumeIcon()}</span>
+          </button>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={mediaVolume}
+            onChange={(e) => setMediaVolume(parseFloat(e.target.value))}
+            className="volume-slider"
+            title="Media Volume"
+          />
+        </div>
         
         <button
           className={cn('action-button')}

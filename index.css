@@ -1014,6 +1014,44 @@ button {
   margin-bottom: 2px;
 }
 
+/* Volume Control */
+.volume-control {
+  display: flex;
+  align-items: center;
+  background: rgba(0,0,0,0.2);
+  border-radius: 12px;
+  padding-right: 12px;
+  gap: 4px;
+}
+
+.volume-button {
+  width: 44px;
+}
+
+.volume-slider {
+  -webkit-appearance: none;
+  width: 80px;
+  height: 4px;
+  background: var(--gray-700);
+  border-radius: 2px;
+  outline: none;
+}
+
+.volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--Blue-500);
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.volume-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
 /* Connection Button */
 .connection-container {
   display: flex;
@@ -1131,6 +1169,10 @@ button {
     border-radius: 20px;
     width: auto;
     max-width: 95%;
+  }
+  
+  .volume-slider {
+    width: 60px;
   }
 
   .actions-nav {

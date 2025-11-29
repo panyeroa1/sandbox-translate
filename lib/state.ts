@@ -31,6 +31,7 @@ export const useSettings = create<{
   model: string;
   voice: string;
   mediaMode: MediaMode;
+  mediaVolume: number;
   youtubeUrl: string;
   audioUrl: string;
   zoomConfig: ZoomConfig;
@@ -39,6 +40,7 @@ export const useSettings = create<{
   setModel: (model: string) => void;
   setVoice: (voice: string) => void;
   setMediaMode: (mode: MediaMode) => void;
+  setMediaVolume: (volume: number) => void;
   setYoutubeUrl: (url: string) => void;
   setAudioUrl: (url: string) => void;
   setZoomConfig: (config: Partial<ZoomConfig>) => void;
@@ -48,6 +50,7 @@ export const useSettings = create<{
   model: DEFAULT_LIVE_API_MODEL,
   voice: DEFAULT_VOICE,
   mediaMode: 'youtube',
+  mediaVolume: 0.5,
   youtubeUrl: 'https://www.youtube.com/watch?v=jfKfPfyJRdk',
   audioUrl: '',
   zoomConfig: {
@@ -64,6 +67,7 @@ export const useSettings = create<{
   setModel: model => set({ model }),
   setVoice: voice => set({ voice }),
   setMediaMode: mediaMode => set({ mediaMode }),
+  setMediaVolume: mediaVolume => set({ mediaVolume }),
   setYoutubeUrl: youtubeUrl => set({ youtubeUrl }),
   setAudioUrl: audioUrl => set({ audioUrl }),
   setZoomConfig: config =>

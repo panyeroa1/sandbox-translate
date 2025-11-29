@@ -59,9 +59,12 @@ const generateSignature = (sdkKey: string, sdkSecret: string, meetingNumber: str
 
 export default function StreamingConsole() {
   const { setConfig, volume, client } = useLiveAPIContext();
-  const { systemPrompt, voice, mediaMode, youtubeUrl, audioUrl, zoomConfig, zoomCredentials, setZoomConfig, setMediaMode } = useSettings();
+  const { systemPrompt, voice, mediaMode, mediaVolume, youtubeUrl, audioUrl, zoomConfig, zoomCredentials, setZoomConfig, setMediaMode } = useSettings();
   const { tools } = useTools();
   const zoomRootRef = useRef<HTMLDivElement>(null);
+  const audioPlayerRef = useRef<HTMLAudioElement>(null);
+  const youtubeFrameRef = useRef<HTMLIFrameElement>(null);
+  
   const [zoomClient, setZoomClient] = useState<any>(null);
   const [zoomError, setZoomError] = useState<string | null>(null);
 
@@ -196,6 +199,26 @@ export default function StreamingConsole() {
   }, [zoomClient, zoomConfig, zoomCredentials, mediaMode]);
 
 
+  // Apply Volume Control
+  useEffect(() => {
+      // 1. Apply to Audio Element
+      if (audioPlayerRef.current) {
+          audioPlayerRef.current.volume = mediaVolume;
+      }
+
+      // 2. Apply to YouTube IFrame
+      if (youtubeFrameRef.current && youtubeFrameRef.current.contentWindow) {
+          // Use the YouTube IFrame API's postMessage interface
+          // Note: args is [volumePercent] (0-100)
+          const volumeCmd = {
+              event: 'command',
+              func: 'setVolume',
+              args: [mediaVolume * 100]
+          };
+          youtubeFrameRef.current.contentWindow.postMessage(JSON.stringify(volumeCmd), '*');
+      }
+  }, [mediaVolume, mediaMode]);
+
   const youtubeId = extractYouTubeId(youtubeUrl) || 'jfKfPfyJRdk';
 
   return (
@@ -204,9 +227,10 @@ export default function StreamingConsole() {
       {mediaMode === 'youtube' && (
         <div className="youtube-embed-container">
           <iframe
+            ref={youtubeFrameRef}
             width="100%"
             height="100%"
-            src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${youtubeId}`}
+            src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=0&enablejsapi=1&controls=0&loop=1&playlist=${youtubeId}`}
             title="YouTube video player"
             frameBorder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -264,6 +288,7 @@ export default function StreamingConsole() {
             </div>
             {audioUrl && (
               <audio 
+                ref={audioPlayerRef}
                 id="integrated-audio-player"
                 src={audioUrl} 
                 autoPlay 
