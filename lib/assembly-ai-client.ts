@@ -15,7 +15,7 @@ export class AssemblyAIClient extends EventEmitter {
     super();
   }
 
-  async connect(sampleRate: number = 16000, lang?: string) {
+  async connect(sampleRate: number = 16000, lang?: string, stream?: MediaStream) {
     if (this.isConnected) return;
 
     // Use default 'en_us' if lang is 'auto' or not provided, as AssemblyAI V2 Streaming defaults to English
@@ -46,7 +46,7 @@ export class AssemblyAIClient extends EventEmitter {
     this.socket.onopen = () => {
       this.isConnected = true;
       this.emit('open');
-      this.startAudio(sampleRate);
+      this.startAudio(sampleRate, stream);
     };
 
     this.socket.onmessage = (event) => {
@@ -76,14 +76,14 @@ export class AssemblyAIClient extends EventEmitter {
     };
   }
 
-  private async startAudio(sampleRate: number) {
+  private async startAudio(sampleRate: number, stream?: MediaStream) {
     this.audioRecorder = new AudioRecorder(sampleRate);
     this.audioRecorder.on('data', (base64Data: string) => {
         if (this.socket && this.socket.readyState === WebSocket.OPEN) {
             this.socket.send(JSON.stringify({ audio_data: base64Data }));
         }
     });
-    await this.audioRecorder.start();
+    await this.audioRecorder.start(stream);
   }
 
   private stopAudio() {

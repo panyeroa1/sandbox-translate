@@ -264,10 +264,12 @@ export default function StreamingConsole() {
             </div>
             {audioUrl && (
               <audio 
+                id="integrated-audio-player"
                 src={audioUrl} 
                 autoPlay 
                 loop 
                 controls 
+                crossOrigin="anonymous"
                 className="native-audio-player"
               />
             )}

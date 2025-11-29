@@ -35,7 +35,7 @@ export default function Sidebar() {
     setZoomCredentials
   } = useSettings();
   const { tools, toggleTool, addTool, removeTool, updateTool } = useTools();
-  const { connected } = useLiveAPIContext();
+  const { connected, client: liveClient } = useLiveAPIContext();
   const { 
     entries, 
     isListening, 
@@ -70,7 +70,13 @@ export default function Sidebar() {
           let interimTranscript = '';
           for (let i = event.resultIndex; i < event.results.length; ++i) {
             if (event.results[i].isFinal) {
-              addEntry(event.results[i][0].transcript, true, language);
+              const finalText = event.results[i][0].transcript;
+              addEntry(finalText, true, language);
+              
+              // BRIDGE TO GEMINI LIVE: Send text as input if connected
+              if (connected && liveClient) {
+                 liveClient.send([{ text: finalText }]);
+              }
             } else {
               interimTranscript += event.results[i][0].transcript;
             }
@@ -110,7 +116,7 @@ export default function Sidebar() {
             recognitionRef.current = null;
         }
     }
-  }, [activeTab, language, addEntry, provider]);
+  }, [activeTab, language, addEntry, provider, connected, liveClient]);
 
   // Handle Toggle Listening logic
   useEffect(() => {
@@ -133,12 +139,29 @@ export default function Sidebar() {
                 const client = new AssemblyAIClient();
                 client.on('transcript', (data: { text: string; isFinal: boolean }) => {
                     addEntry(data.text, data.isFinal, language);
+                    
+                    // BRIDGE TO GEMINI LIVE: Send text as input if connected
+                    if (data.isFinal && connected && liveClient) {
+                        liveClient.send([{ text: data.text }]);
+                    }
                 });
                 client.on('error', (err) => {
                     console.error('AssemblyAI Error:', err);
                     setListening(false);
                 });
-                client.connect(16000, language);
+                
+                // Try to capture audio from the integrated player if mode matches
+                let stream: MediaStream | undefined;
+                if (mediaMode === 'audio') {
+                    const audioEl = document.getElementById('integrated-audio-player') as HTMLAudioElement;
+                    if (audioEl && (audioEl as any).captureStream) {
+                        stream = (audioEl as any).captureStream();
+                    } else if (audioEl && (audioEl as any).mozCaptureStream) {
+                        stream = (audioEl as any).mozCaptureStream();
+                    }
+                }
+
+                client.connect(16000, language, stream);
                 assemblyClientRef.current = client;
             }
         } else {
@@ -160,7 +183,7 @@ export default function Sidebar() {
            assemblyClientRef.current = null;
        }
     }
-  }, [isListening, provider, language, addEntry]);
+  }, [isListening, provider, language, addEntry, connected, liveClient, mediaMode]);
 
 
   const handleSaveTool = (updatedTool: FunctionCall) => {
@@ -442,6 +465,7 @@ export default function Sidebar() {
                      {provider === 'assembly_ai' && (
                         <p style={{fontSize: '11px', color: 'var(--Blue-500)'}}>Using AssemblyAI Real-time</p>
                      )}
+                     {connected && <p style={{fontSize: '11px', color: 'var(--Green-500)', marginTop: '4px'}}>Gemini Translation Active</p>}
                    </div>
                  )}
                  {entries.map((entry, idx) => (
