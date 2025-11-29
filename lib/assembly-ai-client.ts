@@ -28,10 +28,8 @@ export class AssemblyAIClient {
     let url = `wss://api.assemblyai.com/v2/realtime/ws?sample_rate=${sampleRate}&token=${ASSEMBLY_AI_API_KEY}&speaker_labels=true`;
     
     if (lang && lang !== 'auto') {
-        // AssemblyAI uses simplified codes like 'de', 'es', etc. for some, but follows BCP-47 for others.
-        // We will pass the code as provided from the list.
-        // Also enabling format_turns (punctuations)
-        url += `&word_boost=${JSON.stringify([])}`; 
+        // Append the language_code parameter to the URL
+        url += `&language_code=${lang}`; 
     }
 
     try {

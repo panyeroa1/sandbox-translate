@@ -69,6 +69,8 @@ export default function StreamingConsole() {
   
   const [zoomClient, setZoomClient] = useState<any>(null);
   const [zoomError, setZoomError] = useState<string | null>(null);
+  const [captions, setCaptions] = useState<string>('');
+  const captionTimeoutRef = useRef<number | null>(null);
 
   // Set the configuration for the Live API
   useEffect(() => {
@@ -101,10 +103,52 @@ export default function StreamingConsole() {
         ],
       },
       tools: enabledTools,
+      // Enable output transcription to capture the translated speech text
+      outputAudioTranscription: {}, 
     };
 
     setConfig(config);
   }, [setConfig, systemPrompt, tools, voice]);
+
+  // Handle Output Transcription (Captions)
+  useEffect(() => {
+    const onOutputTranscription = (text: string, isFinal: boolean) => {
+        setCaptions(prev => {
+             // If we just finished a sentence (was empty or previous was final?), maybe append space?
+             // Simple accumulation strategy for demo
+             if (!text) return prev;
+             return prev + text;
+        });
+
+        if (isFinal) {
+            // Clear captions after a delay when a sentence completes
+            if (captionTimeoutRef.current) clearTimeout(captionTimeoutRef.current);
+            captionTimeoutRef.current = window.setTimeout(() => {
+                setCaptions('');
+            }, 5000); // Keep text for 5 seconds after finish
+        } else {
+             if (captionTimeoutRef.current) clearTimeout(captionTimeoutRef.current);
+        }
+    };
+    
+    // Also listen for turn complete to clear? 
+    // Sometimes outputTranscription isFinal comes before turnComplete.
+    const onTurnComplete = () => {
+         if (captionTimeoutRef.current) clearTimeout(captionTimeoutRef.current);
+         captionTimeoutRef.current = window.setTimeout(() => {
+            setCaptions('');
+         }, 5000);
+    };
+
+    client.on('outputTranscription', onOutputTranscription);
+    client.on('turncomplete', onTurnComplete);
+
+    return () => {
+        client.off('outputTranscription', onOutputTranscription);
+        client.off('turncomplete', onTurnComplete);
+        if (captionTimeoutRef.current) clearTimeout(captionTimeoutRef.current);
+    };
+  }, [client]);
 
   // Handle Tool Calls (e.g., join_meeting)
   useEffect(() => {
@@ -319,6 +363,13 @@ export default function StreamingConsole() {
           <div className="speaker-label">
             {isProcessing ? 'Translating...' : 'Eburon (AI)'}
           </div>
+        </div>
+      )}
+
+      {/* Live Captions Overlay */}
+      {captions && (
+        <div className="live-caption-overlay fade-in">
+           <p>{captions}</p>
         </div>
       )}
 

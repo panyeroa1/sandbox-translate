@@ -495,6 +495,7 @@ export default function Sidebar() {
                   value={language} 
                   onChange={(e) => setLanguage(e.target.value)}
                   className="lang-select"
+                  title="Source Language"
                 >
                   {TRANSLATION_LANGUAGES.map(lang => (
                     <option key={lang.code} value={lang.code}>{lang.name}</option>
