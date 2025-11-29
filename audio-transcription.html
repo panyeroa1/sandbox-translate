@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Audio Transcription | Eburon Development</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #131829;
+            --bg-card: #1a1f35;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --border: #2d3548;
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: fadeInDown 0.6s ease-out;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            animation: fadeInUp 0.6s ease-out;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 48px rgba(99, 102, 241, 0.15);
+        }
+
+        .control-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+
+        select {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        select:hover {
+            border-color: var(--accent);
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        button {
+            flex: 1;
+            min-width: 150px;
+            padding: 0.875rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            transform: translate(-50%, -50%);
+            transition: width 0.4s ease, height 0.4s ease;
+        }
+
+        button:active::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+            color: white;
+        }
+
+        .btn-start:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-share {
+            background: var(--bg-secondary);
+            color: var(--accent);
+            border: 1px solid var(--accent);
+        }
+
+        .btn-share:hover:not(:disabled) {
+            background: rgba(99, 102, 241, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .btn-stop {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-stop:hover:not(:disabled) {
+            background: var(--error);
+            border-color: var(--error);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .btn-clear {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-clear:hover:not(:disabled) {
+            background: var(--warning);
+            border-color: var(--warning);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--text-secondary);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .status-indicator.active {
+            background: var(--success);
+            box-shadow: 0 0 12px var(--success);
+        }
+
+        .status-indicator.error {
+            background: var(--error);
+            box-shadow: 0 0 12px var(--error);
+        }
+
+        .status-text {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            flex: 1;
+        }
+
+        .visualizer-container {
+            width: 100%;
+            height: 60px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border);
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .transcription-box {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            min-height: 300px;
+            max-height: 500px;
+            overflow-y: auto;
+            font-size: 1.05rem;
+            line-height: 1.8;
+            color: var(--text-primary);
+        }
+
+        .transcription-box:empty::before {
+            content: 'Transcription will appear here...';
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .transcript-line {
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            background: var(--bg-card);
+            border-left: 3px solid var(--accent);
+            border-radius: 4px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .transcript-timestamp {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+        }
+
+        .transcript-text {
+            color: var(--text-primary);
+        }
+
+        .info-box {
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .info-box strong {
+            color: var(--accent);
+        }
+
+        .warning-box {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            display: none; /* Hidden by default */
+        }
+
+        .warning-box strong {
+            color: var(--warning);
+        }
+
+        details {
+            margin-top: 1rem;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        details summary {
+            padding: 1rem;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text-primary);
+            list-style: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        details summary::after {
+            content: '+';
+            font-size: 1.2rem;
+            color: var(--accent);
+        }
+
+        details[open] summary::after {
+            content: '-';
+        }
+
+        .guide-content {
+            padding: 1rem;
+            border-top: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .guide-content ol {
+            margin-left: 1.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .guide-content li {
+            margin-bottom: 0.5rem;
+        }
+
+        .link-accent {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .link-accent:hover {
+            text-decoration: underline;
+        }
+
+        .section-title {
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .card {
+                padding: 1.5rem;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            button {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎙️ Real-Time Audio Transcription</h1>
+            <p class="subtitle">Powered by Web Speech API | Eburon Development</p>
+        </header>
+
+        <div class="card">
+            <div class="control-group">
+                <label for="audioDevice">Select Audio Input Device</label>
+                <select id="audioDevice">
+                    <option value="">Loading devices...</option>
+                </select>
+            </div>
+
+            <div class="visualizer-container">
+                <canvas id="visualizer"></canvas>
+            </div>
+
+            <div class="status-bar">
+                <div class="status-indicator" id="statusIndicator"></div>
+                <span class="status-text" id="statusText">Ready to start</span>
+            </div>
+
+            <div class="button-group">
+                <button class="btn-start" id="startBtn">Start Transcription</button>
+                <button class="btn-share" id="shareAudioBtn">Share System Audio</button>
+                <button class="btn-stop" id="stopBtn" disabled>Stop Transcription</button>
+                <button class="btn-clear" id="clearBtn">Clear Transcript</button>
+            </div>
+
+            <div class="warning-box" id="deviceWarning">
+                <strong>⚠️ Important:</strong> The browser's transcription engine defaults to your <strong>System Default Microphone</strong>. 
+                If you don't see transcription text appearing, please set your selected device (e.g., Virtual Cable) as your computer's <strong>System Default Input</strong>.
+            </div>
+
+            <details>
+                <summary>How to transcribe Zoom Meetings?</summary>
+                <div class="guide-content">
+                    <p>To transcribe audio from Zoom, you have two options:</p>
+                    <br>
+                    <strong>Option 1: Share System Audio (Best for Web Zoom)</strong>
+                    <ol>
+                        <li>Click <strong>Share System Audio</strong> above.</li>
+                        <li>Select the tab or window playing the Zoom meeting.</li>
+                        <li>Ensure "Share tab audio" is checked.</li>
+                    </ol>
+                    <br>
+                    <strong>Option 2: Virtual Audio Cable (Best for Zoom App)</strong>
+                    <ol>
+                        <li>Install a Virtual Audio Cable (e.g., <a href="https://vb-audio.com/Cable/" target="_blank" rel="noopener noreferrer" class="link-accent">VB-Cable</a> or <a href="https://github.com/ExistentialAudio/BlackHole" target="_blank" rel="noopener noreferrer" class="link-accent">BlackHole</a> on Mac).</li>
+                        <li>In <strong>Zoom Settings > Audio</strong>, set "Speaker" to the Virtual Cable.</li>
+                        <li>In this app, select the Virtual Cable as the <strong>Input Device</strong>.</li>
+                        <li><strong>Crucial:</strong> Set the Virtual Cable as your computer's <strong>System Default Input</strong> if transcription doesn't start.</li>
+                    </ol>
+                </div>
+            </details>
+        </div>
+
+        <div class="card">
+            <h2 class="section-title">Live Transcription</h2>
+            <div class="transcription-box" id="transcriptionBox"></div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let recognition = null;
+        let audioStream = null;
+        let audioContext = null;
+        let analyser = null;
+        let source = null;
+        let animationId = null;
+        let selectedDeviceId = null;
+        let isSystemAudio = false;
+
+        // DOM elements
+        const audioDeviceSelect = document.getElementById('audioDevice');
+        const startBtn = document.getElementById('startBtn');
+        const shareAudioBtn = document.getElementById('shareAudioBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const transcriptionBox = document.getElementById('transcriptionBox');
+        const statusIndicator = document.getElementById('statusIndicator');
+        const statusText = document.getElementById('statusText');
+        const canvas = document.getElementById('visualizer');
+        const canvasCtx = canvas.getContext('2d');
+        const deviceWarning = document.getElementById('deviceWarning');
+
+        // Check browser support
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        
+        if (!SpeechRecognition) {
+            updateStatus('error', 'Speech Recognition not supported in this browser. Please use Chrome, Edge, or Safari.');
+            startBtn.disabled = true;
+            shareAudioBtn.disabled = true;
+            return;
+        }
+
+        // Initialize Speech Recognition
+        function initRecognition() {
+            if (recognition) {
+                recognition.stop();
+                recognition = null;
+            }
+
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            // Experimental: Try to set the stream if supported
+            // Note: This is not standard and may not work in all browsers
+            if (audioStream && recognition.audioTrack) {
+                try {
+                    recognition.audioTrack = audioStream.getAudioTracks()[0];
+                } catch (e) {
+                    console.log('Setting audioTrack not supported');
+                }
+            }
+
+            recognition.onstart = () => {
+                updateStatus('active', isSystemAudio ? 'Listening to System Audio...' : 'Listening...');
+                startBtn.disabled = true;
+                shareAudioBtn.disabled = true;
+                stopBtn.disabled = false;
+                
+                // Show warning if we are using a specific device but can't guarantee binding
+                if (selectedDeviceId || isSystemAudio) {
+                    deviceWarning.style.display = 'block';
+                }
+            };
+
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                let finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + ' ';
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
+                if (finalTranscript) {
+                    addTranscriptLine(finalTranscript.trim());
+                    // If we get results, the warning might not be needed, but safer to keep it 
+                    // or maybe hide it to reduce clutter? Let's keep it for now.
+                }
+
+                if (interimTranscript) {
+                    updateStatus('active', `Listening... (${interimTranscript.substring(0, 50)}...)`);
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                updateStatus('error', `Error: ${event.error}`);
+                if (event.error === 'no-speech') {
+                    updateStatus('active', 'No speech detected. Keep speaking...');
+                } else if (event.error === 'not-allowed') {
+                    updateStatus('error', 'Microphone access denied. Please allow microphone access.');
+                    stopTranscription();
+                }
+            };
+
+            recognition.onend = () => {
+                if (stopBtn.disabled === false) {
+                    try {
+                        recognition.start();
+                    } catch (e) {
+                        console.error('Error restarting recognition:', e);
+                        stopTranscription();
+                    }
+                }
+            };
+        }
+
+        // Initialize Audio Visualizer
+        function initVisualizer(stream) {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+
+            if (source) {
+                source.disconnect();
+            }
+
+            analyser = audioContext.createAnalyser();
+            analyser.fftSize = 2048;
+            
+            source = audioContext.createMediaStreamSource(stream);
+            source.connect(analyser);
+
+            drawVisualizer();
+        }
+
+        function drawVisualizer() {
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            
+            const width = canvas.width;
+            const height = canvas.height;
+
+            function draw() {
+                animationId = requestAnimationFrame(draw);
+
+                analyser.getByteTimeDomainData(dataArray);
+
+                canvasCtx.fillStyle = 'rgb(19, 24, 41)'; // Matches --bg-secondary
+                canvasCtx.fillRect(0, 0, width, height);
+
+                canvasCtx.lineWidth = 2;
+                canvasCtx.strokeStyle = 'rgb(99, 102, 241)'; // Matches --accent
+
+                canvasCtx.beginPath();
+
+                const sliceWidth = width * 1.0 / bufferLength;
+                let x = 0;
+
+                for (let i = 0; i < bufferLength; i++) {
+                    const v = dataArray[i] / 128.0;
+                    const y = v * height / 2;
+
+                    if (i === 0) {
+                        canvasCtx.moveTo(x, y);
+                    } else {
+                        canvasCtx.lineTo(x, y);
+                    }
+
+                    x += sliceWidth;
+                }
+
+                canvasCtx.lineTo(canvas.width, canvas.height / 2);
+                canvasCtx.stroke();
+            }
+
+            draw();
+        }
+
+        // Enumerate audio devices
+        async function loadAudioDevices() {
+            try {
+                await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const audioInputs = devices.filter(device => device.kind === 'audioinput');
+
+                audioDeviceSelect.innerHTML = '';
+                
+                if (audioInputs.length === 0) {
+                    audioDeviceSelect.innerHTML = '<option value="">No audio devices found</option>';
+                    updateStatus('error', 'No audio input devices found');
+                    return;
+                }
+
+                audioInputs.forEach((device, index) => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.textContent = device.label || `Microphone ${index + 1}`;
+                    audioDeviceSelect.appendChild(option);
+                });
+
+                selectedDeviceId = audioInputs[0].deviceId;
+                updateStatus('ready', 'Ready to start');
+            } catch (error) {
+                console.error('Error loading audio devices:', error);
+                audioDeviceSelect.innerHTML = '<option value="">Error loading devices</option>';
+                updateStatus('error', 'Failed to access audio devices. Please grant microphone permissions.');
+            }
+        }
+
+        // Start transcription with Microphone
+        async function startTranscription() {
+            try {
+                isSystemAudio = false;
+                selectedDeviceId = audioDeviceSelect.value;
+
+                if (!selectedDeviceId) {
+                    updateStatus('error', 'Please select an audio device');
+                    return;
+                }
+
+                if (audioStream) {
+                    audioStream.getTracks().forEach(track => track.stop());
+                }
+
+                audioStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        deviceId: { exact: selectedDeviceId },
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false
+                    }
+                });
+
+                initVisualizer(audioStream);
+                initRecognition();
+                recognition.start();
+                
+            } catch (error) {
+                console.error('Error starting transcription:', error);
+                updateStatus('error', `Failed to start: ${error.message}`);
+            }
+        }
+
+        // Start transcription with System Audio (getDisplayMedia)
+        async function startSystemAudioTranscription() {
+            try {
+                isSystemAudio = true;
+                
+                if (audioStream) {
+                    audioStream.getTracks().forEach(track => track.stop());
+                }
+
+                // Request system audio via screen sharing
+                audioStream = await navigator.mediaDevices.getDisplayMedia({
+                    video: true, // Video is required to get audio in most browsers
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false
+                    }
+                });
+
+                // Check if we got an audio track
+                if (audioStream.getAudioTracks().length === 0) {
+                    updateStatus('error', 'No audio track found. Did you check "Share tab audio"?');
+                    audioStream.getTracks().forEach(track => track.stop());
+                    return;
+                }
+
+                initVisualizer(audioStream);
+                initRecognition();
+                recognition.start();
+
+            } catch (error) {
+                console.error('Error starting system audio:', error);
+                updateStatus('error', `Failed to share audio: ${error.message}`);
+            }
+        }
+
+        // Stop transcription
+        function stopTranscription() {
+            if (recognition) {
+                recognition.stop();
+            }
+            
+            if (audioStream) {
+                audioStream.getTracks().forEach(track => track.stop());
+                audioStream = null;
+            }
+
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+
+            startBtn.disabled = false;
+            shareAudioBtn.disabled = false;
+            stopBtn.disabled = true;
+            deviceWarning.style.display = 'none';
+            updateStatus('ready', 'Stopped. Ready to start again.');
+        }
+
+        // Add transcript line to the box
+        function addTranscriptLine(text) {
+            const line = document.createElement('div');
+            line.className = 'transcript-line';
+
+            const timestamp = document.createElement('div');
+            timestamp.className = 'transcript-timestamp';
+            timestamp.textContent = new Date().toLocaleTimeString();
+
+            const transcriptText = document.createElement('div');
+            transcriptText.className = 'transcript-text';
+            transcriptText.textContent = text;
+
+            line.appendChild(timestamp);
+            line.appendChild(transcriptText);
+            transcriptionBox.appendChild(line);
+
+            transcriptionBox.scrollTop = transcriptionBox.scrollHeight;
+        }
+
+        // Clear transcript
+        function clearTranscript() {
+            transcriptionBox.innerHTML = '';
+            updateStatus('ready', 'Transcript cleared. Ready to start.');
+        }
+
+        // Update status
+        function updateStatus(state, message) {
+            statusIndicator.className = 'status-indicator';
+            
+            if (state === 'active') {
+                statusIndicator.classList.add('active');
+            } else if (state === 'error') {
+                statusIndicator.classList.add('error');
+            }
+            
+            statusText.textContent = message;
+        }
+
+        // Event listeners
+        startBtn.addEventListener('click', startTranscription);
+        shareAudioBtn.addEventListener('click', startSystemAudioTranscription);
+        stopBtn.addEventListener('click', stopTranscription);
+        clearBtn.addEventListener('click', clearTranscript);
+
+        audioDeviceSelect.addEventListener('change', (e) => {
+            selectedDeviceId = e.target.value;
+            if (!startBtn.disabled) {
+                updateStatus('active', 'Device changed. Stop and Start to apply.');
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            if (canvas) {
+                canvas.width = canvas.parentElement.clientWidth;
+                canvas.height = canvas.parentElement.clientHeight;
+            }
+        });
+
+        window.addEventListener('load', () => {
+            if (canvas) {
+                canvas.width = canvas.parentElement.clientWidth;
+                canvas.height = canvas.parentElement.clientHeight;
+            }
+            loadAudioDevices();
+        });
+    </script>
+</body>
+</html>
