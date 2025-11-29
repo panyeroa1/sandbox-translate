@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
 */
-import { FunctionCall, useSettings, useUI, useTools, MediaMode, useTranscriptionStore, TranscriptionProvider } from '@/lib/state';
+import { FunctionCall, useSettings, useUI, useTools, MediaMode, useTranscriptionStore, TranscriptionProvider, TranscriptionInput } from '@/lib/state';
 import c from 'classnames';
 import { DEFAULT_LIVE_API_MODEL, AVAILABLE_VOICES, TRANSLATION_LANGUAGES } from '@/lib/constants';
 import { useLiveAPIContext } from '@/contexts/LiveAPIContext';
@@ -41,9 +41,11 @@ export default function Sidebar() {
     isListening, 
     language, 
     provider,
+    transcriptionInput,
     setListening, 
     setLanguage, 
     setProvider,
+    setTranscriptionInput,
     addEntry, 
     clearEntries 
   } = useTranscriptionStore();
@@ -151,14 +153,14 @@ export default function Sidebar() {
           try { recognitionRef.current?.start(); } catch(e) {}
       }
 
-      // AssemblyAI Logic (Source: Auto-Detect Device Audio)
+      // AssemblyAI Logic (Source: Manual Selection)
       if (provider === 'assembly_ai') {
           if (!assemblyClientRef.current) {
               const client = new AssemblyAIClient();
               client.on('transcript', (data: { text: string; isFinal: boolean; speaker?: string }) => {
                   const speakerLabel = data.speaker 
                       ? `Speaker ${data.speaker}` 
-                      : (mediaMode === 'youtube' || mediaMode === 'zoom' ? 'System' : 'Speaker');
+                      : (transcriptionInput === 'system' ? 'System' : 'Speaker');
 
                   addEntry(data.text, data.isFinal, language, speakerLabel);
                   
@@ -173,59 +175,59 @@ export default function Sidebar() {
                   setListening(false);
               });
               
-              // SMART DEVICE AUDIO AUTO-DETECT
               let stream: MediaStream | undefined;
 
-              if (mediaMode === 'audio') {
-                  // Strategy 1: Capture Integrated Audio Player
-                  const audioEl = document.getElementById('integrated-audio-player') as HTMLAudioElement;
-                  if (audioEl) {
-                      if ((audioEl as any).captureStream) {
-                        stream = (audioEl as any).captureStream();
-                      } else if ((audioEl as any).mozCaptureStream) {
-                        stream = (audioEl as any).mozCaptureStream();
+              // SYSTEM AUDIO / INTEGRATED MEDIA
+              if (transcriptionInput === 'system') {
+                  
+                  // Try to capture Audio Element directly if in Audio Mode
+                  if (mediaMode === 'audio') {
+                      const audioEl = document.getElementById('integrated-audio-player') as HTMLAudioElement;
+                      if (audioEl) {
+                          if ((audioEl as any).captureStream) {
+                            stream = (audioEl as any).captureStream();
+                          } else if ((audioEl as any).mozCaptureStream) {
+                            stream = (audioEl as any).mozCaptureStream();
+                          }
                       }
                   }
-              } 
-              
-              if (!stream && (mediaMode === 'youtube' || mediaMode === 'zoom')) {
-                   // Strategy 2: Capture System Audio via Screen Share (Tab Audio)
-                   // This is required for Iframe content (YouTube) or external Zoom rendering
-                   try {
-                     const displayMedia = await navigator.mediaDevices.getDisplayMedia({ 
-                        video: true, // Video is required to get display media
-                        audio: { 
-                           echoCancellation: false, 
-                           noiseSuppression: false, 
-                           autoGainControl: false,
-                           // @ts-ignore
-                           suppressLocalAudioPlayback: false 
-                        } 
-                     });
-                     
-                     // Check if user shared audio
-                     if (displayMedia.getAudioTracks().length > 0) {
-                         // We only need the audio track
-                         stream = new MediaStream(displayMedia.getAudioTracks());
-                         // We can stop the video track immediately to save resources/bandwidth
-                         displayMedia.getVideoTracks().forEach(track => track.stop());
-                     } else {
-                         alert("No audio shared! Please check 'Share tab audio' in the browser dialog.");
-                         displayMedia.getTracks().forEach(track => track.stop());
+
+                  // If not captured from DOM, fallback to Screen/Tab Share
+                  // This is the primary method for YouTube Iframe and Zoom
+                  if (!stream) {
+                       try {
+                         const displayMedia = await navigator.mediaDevices.getDisplayMedia({ 
+                            video: true, // Video is required to get display media
+                            audio: { 
+                               echoCancellation: false, 
+                               noiseSuppression: false, 
+                               autoGainControl: false,
+                               // @ts-ignore
+                               suppressLocalAudioPlayback: false 
+                            } 
+                         });
+                         
+                         // Check if user shared audio
+                         if (displayMedia.getAudioTracks().length > 0) {
+                             stream = new MediaStream(displayMedia.getAudioTracks());
+                             // Stop video track
+                             displayMedia.getVideoTracks().forEach(track => track.stop());
+                         } else {
+                             alert("No audio shared! Please check 'Share tab audio' in the browser dialog.");
+                             displayMedia.getTracks().forEach(track => track.stop());
+                             setListening(false);
+                             return;
+                         }
+    
+                       } catch(err) {
+                         console.warn("User cancelled display media selection or not supported.", err);
                          setListening(false);
                          return;
-                     }
-
-                   } catch(err) {
-                     console.warn("User cancelled display media selection or not supported.", err);
-                     setListening(false);
-                     return;
-                   }
+                       }
+                  }
               }
 
-              // Fallback (Strategy 3): Default Microphone (if no stream found above)
-              // This happens if mediaMode is none or acquisition failed but we want to continue with mic
-
+              // MICROPHONE (Default if stream is undefined or input is 'mic')
               client.connect(16000, language, stream);
               assemblyClientRef.current = client;
           }
@@ -520,6 +522,23 @@ export default function Sidebar() {
                 </select>
               </label>
 
+              {/* Audio Source Dropdown - Only for AssemblyAI */}
+              {provider === 'assembly_ai' && (
+                  <label>
+                    Audio Source
+                    <select
+                        value={transcriptionInput}
+                        onChange={e => {
+                            setListening(false); // Stop if changing source
+                            setTranscriptionInput(e.target.value as TranscriptionInput);
+                        }}
+                    >
+                        <option value="mic">Microphone (Default)</option>
+                        <option value="system">System Audio (Share Tab)</option>
+                    </select>
+                  </label>
+              )}
+
               <div className="transcription-controls">
                 <button 
                    className={c('rec-button', { recording: isListening })}
@@ -548,19 +567,19 @@ export default function Sidebar() {
               
               {/* Audio Source Indicator */}
               <div style={{fontSize: '11px', color: 'var(--gray-500)', marginBottom: '8px', paddingLeft: '4px'}}>
-                   Source: {provider === 'assembly_ai' 
-                      ? ((mediaMode === 'youtube' || mediaMode === 'zoom') ? 'Device Audio (Screen Share)' : 'Auto-Detect') 
-                      : 'Microphone (Default)'}
+                   Source: {provider === 'web_speech' 
+                      ? 'Microphone (Browser Default)' 
+                      : (transcriptionInput === 'system' ? 'Device Audio (Tab Share)' : 'Microphone')}
               </div>
               
               <div className="transcript-log">
                  {entries.length === 0 && (
                    <div className="empty-state">
                      <span className="icon">graphic_eq</span>
-                     <p>Waiting for Device Audio...</p>
-                     {provider === 'assembly_ai' && (mediaMode === 'youtube' || mediaMode === 'zoom') && (
+                     <p>Waiting for audio...</p>
+                     {provider === 'assembly_ai' && transcriptionInput === 'system' && (
                         <p style={{fontSize: '11px', color: 'var(--Blue-400)', maxWidth: '200px'}}>
-                           Select the tab with audio when the browser dialog appears.
+                           Ensure you select "Share Audio" in the browser dialog.
                         </p>
                      )}
                      {connected && <p style={{fontSize: '11px', color: 'var(--Green-500)', marginTop: '4px'}}>Gemini Translation Active</p>}

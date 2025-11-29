@@ -253,26 +253,31 @@ const detectTopic = (text: string): string | undefined => {
 };
 
 export type TranscriptionProvider = 'web_speech' | 'assembly_ai';
+export type TranscriptionInput = 'mic' | 'system';
 
 export const useTranscriptionStore = create<{
   entries: TranscriptEntry[];
   isListening: boolean;
   language: string;
   provider: TranscriptionProvider;
+  transcriptionInput: TranscriptionInput;
   addEntry: (text: string, isFinal: boolean, lang: string, speaker?: string) => void;
   updateLastEntry: (text: string) => void;
   setListening: (listening: boolean) => void;
   setLanguage: (lang: string) => void;
   setProvider: (provider: TranscriptionProvider) => void;
+  setTranscriptionInput: (input: TranscriptionInput) => void;
   clearEntries: () => void;
 }>((set, get) => ({
   entries: [],
   isListening: false,
   language: 'auto',
   provider: 'web_speech',
+  transcriptionInput: 'mic',
   setListening: (isListening) => set({ isListening }),
   setLanguage: (language) => set({ language }),
   setProvider: (provider) => set({ provider }),
+  setTranscriptionInput: (transcriptionInput) => set({ transcriptionInput }),
   clearEntries: () => set({ entries: [] }),
   addEntry: (text, isFinal, lang, speaker = 'Speaker') => set(state => {
     const topic = isFinal ? detectTopic(text) : undefined;
