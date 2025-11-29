@@ -21,7 +21,6 @@
 import cn from 'classnames';
 
 import { memo, ReactNode, useEffect, useRef, useState } from 'react';
-import { AudioRecorder } from '../../../lib/audio-recorder';
 import { useUI, useSettings } from '@/lib/state';
 
 import { useLiveAPIContext } from '../../../contexts/LiveAPIContext';
@@ -31,13 +30,12 @@ export type ControlTrayProps = {
 };
 
 function ControlTray({ children }: ControlTrayProps) {
-  const [audioRecorder] = useState(() => new AudioRecorder());
   const [muted, setMuted] = useState(false);
   const connectButtonRef = useRef<HTMLButtonElement>(null);
   const { toggleSidebar } = useUI();
   const { mediaVolume, setMediaVolume } = useSettings();
 
-  const { client, connected, connect, disconnect } = useLiveAPIContext();
+  const { connected, connect, disconnect } = useLiveAPIContext();
 
   useEffect(() => {
     if (!connected && connectButtonRef.current) {
@@ -50,24 +48,6 @@ function ControlTray({ children }: ControlTrayProps) {
       setMuted(false);
     }
   }, [connected]);
-
-  // CHANGED: We do NOT send audio data to client.sendRealtimeInput anymore to prevent feedback.
-  // The audio recorder here is purely for local visualization or future use if we want to enable mic again.
-  // Gemini receives text via the Sidebar's bridge logic.
-  useEffect(() => {
-    const onData = (base64: string) => {
-      // client.sendRealtimeInput([{ mimeType: 'audio/pcm;rate=16000', data: base64 }]);
-    };
-    if (connected && !muted && audioRecorder) {
-      audioRecorder.on('data', onData);
-      audioRecorder.start();
-    } else {
-      audioRecorder.stop();
-    }
-    return () => {
-      audioRecorder.off('data', onData);
-    };
-  }, [connected, client, muted, audioRecorder]);
 
   const handleMicClick = () => {
     if (connected) {
@@ -94,7 +74,7 @@ function ControlTray({ children }: ControlTrayProps) {
   return (
     <section className="control-tray">
       <nav className={cn('actions-nav')}>
-        {/* Mic toggle kept for "connection" logic, but audio sending is disabled */}
+        
         <button
           className={cn('action-button mic-button')}
           onClick={handleMicClick}

@@ -154,7 +154,7 @@ export default function Sidebar() {
     if (!isListening) {
       // Auto-connect to Gemini Live if not already connected
       if (!connected) {
-         connect();
+         await connect();
       }
 
       setListening(true);
