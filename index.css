@@ -1,0 +1,738 @@
+body {
+  margin: 0;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
+    'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family:
+    source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+:root {
+  --text: white;
+  --gray-200: #b4b8bb;
+  --gray-300: #80868b;
+  --gray-500: #5f6368;
+  --gray-600: #80868b;
+  --gray-700: #5f6368;
+  --gray-800: #3c4043;
+  --gray-900: #202124;
+  --gray-1000: #0a0a0a;
+  --border-stroke: #444444;
+  --accent-blue: rgb(161, 228, 242);
+  --accent-blue-active-bg: #001233;
+  --accent-blue-active: #98beff;
+  --accent-blue-headers: #448dff;
+  --accent-green: rgb(168, 218, 181);
+  --midnight-blue: rgb(0, 18, 51);
+  --blue-30: #99beff;
+  --accent-red: #ff4600;
+  --background: var(--gray-900);
+  --color: var(--text);
+  scrollbar-color: var(--gray-600) var(--gray-900);
+  scrollbar-width: thin;
+  --font-family: 'google sans' 'Space Mono', monospace;
+  /* Colors */
+  --Neutral-00: #000;
+  --Neutral-5: #181a1b;
+  --Neutral-10: #1c1f21;
+  --Neutral-15: #232729;
+  --Neutral-20: #2a2f31;
+  --Neutral-30: #404547;
+  --Neutral-50: #707577;
+  --Neutral-60: #888d8f;
+  --Neutral-80: #c3c6c7;
+  --Neutral-90: #e1e2e3;
+  --Green-500: #0d9c53;
+  --Green-700: #025022;
+  --Blue-400: #80c1ff;
+  --Blue-500: #1f94ff;
+  --Blue-800: #0f3557;
+  --Red-400: #ff9c7a;
+  --Red-500: #ff4600;
+  --Red-600: #e03c00;
+  --Red-700: #bd3000;
+  --card-header: #2e96ff;
+  --card-border: #217bfe;
+  --card-background: #13151a;
+  --card-border-radius: 16px;
+
+  --breakpoint-md: 768px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Google Sans Display', sans-serif;
+  background: var(--Neutral-00);
+  overflow: hidden; /* Prevent scrolling */
+}
+
+:root {
+  background: var(--Neutral-00);
+  color: var(--text);
+  font-family: var(--font-family);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: normal;
+}
+
+li {
+  list-style: none;
+}
+
+/* Sidebar & Tools */
+.sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 380px;
+  height: 100%;
+  background: var(--gray-900);
+  border-left: 1px solid var(--gray-800);
+  z-index: 200;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  box-shadow: -4px 0 24px rgba(0,0,0,0.4);
+}
+
+.sidebar.open {
+  transform: translateX(0);
+}
+
+.sidebar-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--gray-800);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--Neutral-10);
+}
+
+.sidebar-header h3 {
+  font-weight: 600;
+  font-size: 18px;
+  color: var(--text);
+  letter-spacing: 0.5px;
+}
+
+.sidebar-content {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.sidebar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sidebar-section-title {
+  color: var(--gray-500);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+/* Sidebar Forms */
+.sidebar-content fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.sidebar-content label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--gray-300);
+  font-weight: 500;
+}
+
+.sidebar-content textarea,
+.sidebar-content select,
+.sidebar-content input[type="text"] {
+  background-color: var(--Neutral-15);
+  border: 1px solid var(--gray-700);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 14px;
+  color: var(--text);
+  width: 100%;
+  font-family: var(--font-family);
+  transition: all 0.2s;
+}
+
+.sidebar-content textarea:hover,
+.sidebar-content select:hover,
+.sidebar-content input[type="text"]:hover {
+  border-color: var(--gray-500);
+  background-color: var(--Neutral-20);
+}
+
+.sidebar-content textarea:focus,
+.sidebar-content select:focus,
+.sidebar-content input[type="text"]:focus {
+  border-color: var(--Blue-500);
+  background-color: var(--Neutral-20);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(31, 148, 255, 0.2);
+}
+
+.sidebar-content textarea {
+  min-height: 120px;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+/* Tools List */
+.tools-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tool-item {
+  background-color: var(--Neutral-15);
+  border: 1px solid var(--gray-800);
+  padding: 12px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.2s;
+}
+
+.tool-item:hover {
+  border-color: var(--gray-600);
+  background-color: var(--Neutral-20);
+}
+
+.tool-checkbox-wrapper {
+  position: relative;
+  flex-shrink: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.tool-checkbox-wrapper input[type='checkbox'] {
+  opacity: 0;
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+.checkbox-visual {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--gray-500);
+  border-radius: 5px;
+  background-color: var(--gray-900);
+  transition: all 0.2s;
+  flex-shrink: 0;
+  display: block;
+}
+
+.checkbox-visual::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 2px;
+  width: 5px;
+  height: 11px;
+  border: solid var(--Neutral-90);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.tool-checkbox-wrapper input[type='checkbox']:checked + .checkbox-visual {
+  background-color: var(--Blue-500);
+  border-color: var(--Blue-500);
+}
+.tool-checkbox-wrapper input[type='checkbox']:checked + .checkbox-visual::after {
+  opacity: 1;
+}
+
+.tool-name-text {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 13px;
+  color: var(--gray-200);
+  flex-grow: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.tool-actions {
+  display: flex;
+  gap: 6px;
+  opacity: 0.4;
+  transition: opacity 0.2s ease-in-out;
+  flex-shrink: 0;
+}
+.tool-item:hover .tool-actions {
+  opacity: 1;
+}
+
+.tool-actions button {
+  padding: 4px;
+  color: var(--gray-300);
+  border-radius: 4px;
+  background: transparent;
+  transition: all 0.2s;
+}
+.tool-actions button:hover {
+  color: var(--text);
+  background: var(--gray-700);
+}
+
+.add-tool-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px dashed var(--gray-700);
+  color: var(--Blue-400);
+  font-size: 14px;
+  font-weight: 500;
+  background: transparent;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.add-tool-button:hover {
+  background-color: rgba(31, 148, 255, 0.05);
+  border-color: var(--Blue-500);
+}
+
+/* Tool Editor Modal */
+.tool-editor-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.tool-editor-modal h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.tool-editor-modal .form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tool-editor-modal label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--gray-300);
+}
+
+.tool-editor-modal input,
+.tool-editor-modal textarea,
+.tool-editor-modal select {
+  background-color: var(--Neutral-15);
+  border: 1px solid var(--gray-700);
+  border-radius: 8px;
+  padding: 12px;
+  color: white;
+  width: 100%;
+  font-family: var(--font-family);
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.tool-editor-modal input:focus,
+.tool-editor-modal textarea:focus,
+.tool-editor-modal select:focus {
+  outline: none;
+  border-color: var(--Blue-500);
+  background-color: var(--Neutral-20);
+}
+
+.tool-editor-modal .json-editor {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 13px;
+  min-height: 150px;
+  line-height: 1.5;
+}
+
+.scheduling-description {
+  font-size: 12px;
+  color: var(--gray-500);
+  margin-top: 4px;
+}
+
+.json-error {
+  color: var(--Red-400);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.cancel-button {
+  padding: 10px 20px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid var(--gray-700);
+  color: var(--gray-300);
+  font-weight: 500;
+  transition: all 0.2s;
+}
+.cancel-button:hover {
+  border-color: var(--gray-500);
+  color: white;
+}
+
+.save-button {
+  padding: 10px 24px;
+  border-radius: 8px;
+  background: var(--Blue-500);
+  color: white;
+  font-weight: 600;
+  border: none;
+  transition: background-color 0.2s;
+}
+.save-button:hover {
+  background: var(--Blue-400);
+}
+
+/* Global / General */
+input,
+textarea {
+  /* Resetting generic inputs to inherit if not styled, 
+     but specific classes above override this for sidebar/modal */
+  font-family: var(--font-family);
+  background: none;
+  color: white;
+  border: none;
+  outline: none;
+  font-size: 16px;
+  resize: none;
+}
+
+select {
+  font-family: inherit;
+  /* Appearance reset handled by classes above */
+  cursor: pointer;
+}
+
+button {
+  font-family: var(--font-family);
+  background: none;
+  color: white;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.icon {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 20px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+
+/* App Structure & Main Console */
+.streaming-console {
+  background: black;
+  color: var(--gray-300);
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  position: relative;
+}
+
+.streaming-console main {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  width: 100%;
+  height: 100%;
+}
+
+.main-app-area {
+  flex: 1;
+  display: flex;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: black;
+}
+
+/* Zoom Viewport */
+.zoom-viewport {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+}
+
+.youtube-embed-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  /* opacity: 0.6; Remove opacity to make it look like a real screen share or keep it subtle? 
+     Zoom shared screens are usually full brightness. 
+     User requested "embed of YouTube", let's keep it clear but maybe dim slightly if needed for overlays.
+     Let's default to full opacity for clarity. */
+  opacity: 1; 
+  pointer-events: none; /* Let clicks pass through if we want to interact with overlay, but iframe usually captures them */
+}
+
+/* Ensure iframe interacts properly or is blocked depending on desired behavior. 
+   If it's just a background, pointer-events: none is good. 
+   If user wants to play/pause, we might need to change this. 
+   For now, strictly background per spec 'viewport'. */
+
+.active-speaker-overlay {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  background: rgba(28, 31, 33, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  z-index: 10;
+  min-width: 140px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.speaker-indicator {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--Blue-500), var(--Blue-400));
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  transition: transform 0.05s ease-out;
+  box-shadow: 0 2px 8px rgba(31, 148, 255, 0.4);
+}
+
+.speaker-label {
+  font-size: 13px;
+  color: white;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+/* Control Tray */
+.control-tray {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: rgba(28, 31, 33, 0.95);
+  border: 1px solid var(--gray-800);
+  border-radius: 16px;
+  z-index: 100;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+.actions-nav {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.action-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--gray-200);
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  transition: all 0.2s;
+  border: none;
+}
+
+.action-button:hover {
+  background: rgba(255,255,255,0.08);
+  color: white;
+  transform: translateY(-2px);
+}
+
+.action-button .material-symbols-outlined,
+.action-button .icon {
+  font-size: 26px;
+  margin-bottom: 2px;
+}
+
+.action-button.mic-button {
+  /* specific mic styles if needed */
+}
+
+/* Connection Button */
+.connection-container {
+  display: flex;
+  align-items: center;
+  margin-left: 8px;
+  padding-left: 16px;
+  border-left: 1px solid var(--gray-700);
+  height: 40px;
+}
+
+.connect-toggle {
+  background: var(--Green-500);
+  color: white;
+  border-radius: 24px;
+  padding: 0 24px;
+  height: 44px;
+  font-weight: 600;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.connect-toggle.connected {
+  background: var(--Red-500);
+}
+
+.connect-toggle:hover {
+  filter: brightness(1.1);
+  transform: scale(1.02);
+}
+
+.text-indicator {
+  display: none;
+}
+
+/* Modal Shroud */
+.modalShroud {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal {
+  background: var(--Neutral-10);
+  border: 1px solid var(--gray-700);
+  border-radius: 16px;
+  padding: 32px;
+  width: 100%;
+  max-width: 550px;
+  position: relative;
+  box-shadow: 0 24px 48px rgba(0,0,0,0.6);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modalClose {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--gray-500);
+  transition: all 0.2s;
+}
+.modalClose:hover {
+  background: var(--gray-800);
+  color: white;
+}
+
+/* Error Screen */
+.error-screen {
+  background: rgba(0,0,0,0.9);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
