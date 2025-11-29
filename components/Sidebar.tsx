@@ -2,12 +2,13 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
 */
-import { FunctionCall, useSettings, useUI, useTools, MediaMode, useTranscriptionStore } from '@/lib/state';
+import { FunctionCall, useSettings, useUI, useTools, MediaMode, useTranscriptionStore, TranscriptionProvider } from '@/lib/state';
 import c from 'classnames';
-import { DEFAULT_LIVE_API_MODEL, AVAILABLE_VOICES } from '@/lib/constants';
+import { DEFAULT_LIVE_API_MODEL, AVAILABLE_VOICES, TRANSLATION_LANGUAGES } from '@/lib/constants';
 import { useLiveAPIContext } from '@/contexts/LiveAPIContext';
 import { useState, useEffect, useRef } from 'react';
 import ToolEditorModal from './ToolEditorModal';
+import { AssemblyAIClient } from '@/lib/assembly-ai-client';
 
 const AVAILABLE_MODELS = [
   DEFAULT_LIVE_API_MODEL
@@ -39,24 +40,31 @@ export default function Sidebar() {
     entries, 
     isListening, 
     language, 
+    provider,
     setListening, 
     setLanguage, 
+    setProvider,
     addEntry, 
     clearEntries 
   } = useTranscriptionStore();
 
   const [editingTool, setEditingTool] = useState<FunctionCall | null>(null);
   const recognitionRef = useRef<any>(null);
+  const assemblyClientRef = useRef<AssemblyAIClient | null>(null);
 
-  // Initialize Speech Recognition
+  // Initialize Speech Recognition (Web Speech API)
   useEffect(() => {
-    if (typeof window !== 'undefined' && activeTab === 'transcription') {
+    if (typeof window !== 'undefined' && activeTab === 'transcription' && provider === 'web_speech') {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
         recognition.continuous = true;
         recognition.interimResults = true;
-        recognition.lang = language;
+        
+        // Handle "Auto" language for Web Speech API by not setting lang (defaults to browser)
+        if (language !== 'auto') {
+            recognition.lang = language;
+        }
 
         recognition.onresult = (event: any) => {
           let interimTranscript = '';
@@ -73,6 +81,10 @@ export default function Sidebar() {
         };
 
         recognition.onerror = (event: any) => {
+          // Ignore 'no-speech' errors as they are common when user is silent but still wants to record
+          if (event.error === 'no-speech') {
+            return;
+          }
           console.error("Speech recognition error", event.error);
           if (event.error === 'not-allowed') {
             setListening(false);
@@ -80,7 +92,8 @@ export default function Sidebar() {
         };
 
         recognition.onend = () => {
-          if (isListening) {
+          // Restart if we are still supposed to be listening (handles no-speech timeouts)
+          if (useTranscriptionStore.getState().isListening && useTranscriptionStore.getState().provider === 'web_speech') {
              try {
                recognition.start();
              } catch(e) { /* ignore already started */ }
@@ -89,23 +102,65 @@ export default function Sidebar() {
 
         recognitionRef.current = recognition;
       }
+    } else {
+        // Cleanup if switching providers or tabs
+        if (recognitionRef.current) {
+            recognitionRef.current.onend = null; // Prevent restart loop
+            try { recognitionRef.current.stop(); } catch(e) {}
+            recognitionRef.current = null;
+        }
     }
-  }, [activeTab, language, addEntry, isListening, setListening]);
+  }, [activeTab, language, addEntry, provider]);
 
-  // Toggle Listening
+  // Handle Toggle Listening logic
   useEffect(() => {
-    const recognition = recognitionRef.current;
-    if (recognition) {
-      if (isListening) {
-        try { recognition.start(); } catch(e) {}
-      } else {
-        try { recognition.stop(); } catch(e) {}
-      }
+    // Web Speech API Logic
+    if (provider === 'web_speech') {
+        const recognition = recognitionRef.current;
+        if (recognition) {
+          if (isListening) {
+            try { recognition.start(); } catch(e) {}
+          } else {
+            try { recognition.stop(); } catch(e) {}
+          }
+        }
     }
+
+    // AssemblyAI Logic
+    if (provider === 'assembly_ai') {
+        if (isListening) {
+            if (!assemblyClientRef.current) {
+                const client = new AssemblyAIClient();
+                client.on('transcript', (data: { text: string; isFinal: boolean }) => {
+                    addEntry(data.text, data.isFinal, language);
+                });
+                client.on('error', (err) => {
+                    console.error('AssemblyAI Error:', err);
+                    setListening(false);
+                });
+                client.connect(16000, language);
+                assemblyClientRef.current = client;
+            }
+        } else {
+            if (assemblyClientRef.current) {
+                assemblyClientRef.current.disconnect();
+                assemblyClientRef.current = null;
+            }
+        }
+    }
+
     return () => {
-       if (recognition) try { recognition.stop(); } catch(e) {}
+       // Cleanup on unmount or provider switch
+       if (recognitionRef.current && provider !== 'web_speech') {
+            recognitionRef.current.onend = null;
+            try { recognitionRef.current.stop(); } catch(e) {}
+       }
+       if (assemblyClientRef.current && provider !== 'assembly_ai') {
+           assemblyClientRef.current.disconnect();
+           assemblyClientRef.current = null;
+       }
     }
-  }, [isListening]);
+  }, [isListening, provider, language, addEntry]);
 
 
   const handleSaveTool = (updatedTool: FunctionCall) => {
@@ -339,6 +394,20 @@ export default function Sidebar() {
 
           {activeTab === 'transcription' && (
             <div className="sidebar-section full-height">
+              <label>
+                Provider
+                <select 
+                   value={provider} 
+                   onChange={e => {
+                     setListening(false);
+                     setProvider(e.target.value as TranscriptionProvider);
+                   }}
+                >
+                  <option value="web_speech">Browser Native (Web Speech)</option>
+                  <option value="assembly_ai">AssemblyAI (WebSocket)</option>
+                </select>
+              </label>
+
               <div className="transcription-controls">
                 <button 
                    className={c('rec-button', { recording: isListening })}
@@ -354,13 +423,11 @@ export default function Sidebar() {
                   onChange={(e) => setLanguage(e.target.value)}
                   className="lang-select"
                 >
-                  <option value="en-US">EN (US)</option>
-                  <option value="en-GB">EN (GB)</option>
-                  <option value="es-ES">Spanish</option>
-                  <option value="fr-FR">French</option>
-                  <option value="de-DE">German</option>
-                  <option value="nl-NL">Dutch</option>
-                  <option value="tl-PH">Tagalog</option>
+                  {TRANSLATION_LANGUAGES.map(lang => (
+                    <option key={lang.code} value={lang.code}>
+                        {lang.name}
+                    </option>
+                  ))}
                 </select>
                 <button onClick={clearEntries} className="clear-button">
                   <span className="icon">delete_sweep</span>
@@ -372,6 +439,9 @@ export default function Sidebar() {
                    <div className="empty-state">
                      <span className="icon">graphic_eq</span>
                      <p>Start recording to see real-time transcription.</p>
+                     {provider === 'assembly_ai' && (
+                        <p style={{fontSize: '11px', color: 'var(--Blue-500)'}}>Using AssemblyAI Real-time</p>
+                     )}
                    </div>
                  )}
                  {entries.map((entry, idx) => (
