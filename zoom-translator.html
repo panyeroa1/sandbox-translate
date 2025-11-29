@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real-Time Audio Transcription | Eburon Development</title>
+    <title>Real-Time Zoom Translator | Eburon Development</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -38,7 +38,7 @@
         }
 
         .container {
-            max-width: 900px;
+            max-width: 1200px;
             margin: 0 auto;
         }
 
@@ -63,12 +63,18 @@
             font-size: 1rem;
         }
 
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
         .card {
             background: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: 16px;
             padding: 2rem;
-            margin-bottom: 1.5rem;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             -webkit-backdrop-filter: blur(10px);
             backdrop-filter: blur(10px);
@@ -81,6 +87,13 @@
             box-shadow: 0 12px 48px rgba(99, 102, 241, 0.15);
         }
 
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--text-primary);
+        }
+
         .control-group {
             margin-bottom: 1.5rem;
         }
@@ -90,10 +103,10 @@
             font-weight: 600;
             margin-bottom: 0.5rem;
             color: var(--text-primary);
-            font-size: 0.95rem;
+            font-size: 0.9rem;
         }
 
-        select {
+        select, input {
             width: 100%;
             padding: 0.875rem 1rem;
             background: var(--bg-secondary);
@@ -106,11 +119,11 @@
             transition: all 0.2s ease;
         }
 
-        select:hover {
+        select:hover, input:hover {
             border-color: var(--accent);
         }
 
-        select:focus {
+        select:focus, input:focus {
             outline: none;
             border-color: var(--accent);
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
@@ -124,7 +137,7 @@
 
         button {
             flex: 1;
-            min-width: 150px;
+            min-width: 120px;
             padding: 0.875rem 1.5rem;
             font-size: 1rem;
             font-weight: 600;
@@ -133,71 +146,38 @@
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.2s ease;
-            position: relative;
-            overflow: hidden;
         }
 
-        button::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.1);
-            transform: translate(-50%, -50%);
-            transition: width 0.4s ease, height 0.4s ease;
-        }
-
-        button:active::before {
-            width: 300px;
-            height: 300px;
-        }
-
-        .btn-start {
+        .btn-primary {
             background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
             color: white;
         }
 
-        .btn-start:hover:not(:disabled) {
+        .btn-primary:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
         }
 
-        .btn-share {
+        .btn-secondary {
             background: var(--bg-secondary);
             color: var(--accent);
             border: 1px solid var(--accent);
         }
 
-        .btn-share:hover:not(:disabled) {
+        .btn-secondary:hover:not(:disabled) {
             background: rgba(99, 102, 241, 0.1);
             transform: translateY(-2px);
         }
 
-        .btn-stop {
+        .btn-danger {
             background: var(--bg-secondary);
             color: var(--text-primary);
             border: 1px solid var(--border);
         }
 
-        .btn-stop:hover:not(:disabled) {
+        .btn-danger:hover:not(:disabled) {
             background: var(--error);
             border-color: var(--error);
-            color: white;
-            transform: translateY(-2px);
-        }
-
-        .btn-clear {
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            border: 1px solid var(--border);
-        }
-
-        .btn-clear:hover:not(:disabled) {
-            background: var(--warning);
-            border-color: var(--warning);
             color: white;
             transform: translateY(-2px);
         }
@@ -230,6 +210,11 @@
             box-shadow: 0 0 12px var(--success);
         }
 
+        .status-indicator.translating {
+            background: var(--accent);
+            box-shadow: 0 0 12px var(--accent);
+        }
+
         .status-indicator.error {
             background: var(--error);
             box-shadow: 0 0 12px var(--error);
@@ -257,20 +242,20 @@
             display: block;
         }
 
-        .transcription-box {
+        .transcript-box {
             background: var(--bg-secondary);
             border: 1px solid var(--border);
             border-radius: 12px;
             padding: 1.5rem;
-            min-height: 300px;
-            max-height: 500px;
+            min-height: 200px;
+            max-height: 400px;
             overflow-y: auto;
-            font-size: 1.05rem;
+            font-size: 1rem;
             line-height: 1.8;
             color: var(--text-primary);
         }
 
-        .transcription-box:empty::before {
+        .transcript-box:empty::before {
             content: 'Transcription will appear here...';
             color: var(--text-secondary);
             font-style: italic;
@@ -295,91 +280,10 @@
             color: var(--text-primary);
         }
 
-        .info-box {
-            background: rgba(99, 102, 241, 0.1);
-            border: 1px solid rgba(99, 102, 241, 0.3);
-            border-radius: 8px;
-            padding: 1rem;
-            margin-top: 1rem;
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-        }
-
-        .info-box strong {
-            color: var(--accent);
-        }
-
-        .warning-box {
-            background: rgba(245, 158, 11, 0.1);
-            border: 1px solid rgba(245, 158, 11, 0.3);
-            border-radius: 8px;
-            padding: 1rem;
-            margin-top: 1rem;
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-            display: none; /* Hidden by default */
-        }
-
-        .warning-box strong {
-            color: var(--warning);
-        }
-
-        details {
-            margin-top: 1rem;
-            background: var(--bg-secondary);
-            border-radius: 8px;
-            border: 1px solid var(--border);
-        }
-
-        details summary {
-            padding: 1rem;
-            cursor: pointer;
-            font-weight: 600;
-            color: var(--text-primary);
-            list-style: none;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        details summary::after {
-            content: '+';
-            font-size: 1.2rem;
-            color: var(--accent);
-        }
-
-        details[open] summary::after {
-            content: '-';
-        }
-
-        .guide-content {
-            padding: 1rem;
-            border-top: 1px solid var(--border);
-            color: var(--text-secondary);
-            font-size: 0.95rem;
-        }
-
-        .guide-content ol {
-            margin-left: 1.5rem;
+        .translation-text {
+            color: var(--success);
             margin-top: 0.5rem;
-        }
-
-        .guide-content li {
-            margin-bottom: 0.5rem;
-        }
-
-        .link-accent {
-            color: var(--accent);
-            text-decoration: none;
-        }
-
-        .link-accent:hover {
-            text-decoration: underline;
-        }
-
-        .section-title {
-            margin-bottom: 1rem;
-            font-size: 1.25rem;
+            font-style: italic;
         }
 
         @keyframes fadeInDown {
@@ -433,16 +337,12 @@
                 font-size: 2rem;
             }
 
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
             .card {
                 padding: 1.5rem;
-            }
-
-            .button-group {
-                flex-direction: column;
-            }
-
-            button {
-                min-width: 100%;
             }
         }
     </style>
@@ -450,65 +350,75 @@
 <body>
     <div class="container">
         <header>
-            <h1>🎙️ Real-Time Audio Transcription</h1>
-            <p class="subtitle">Powered by Web Speech API | Eburon Development</p>
+            <h1>🌐 Real-Time Zoom Translator</h1>
+            <p class="subtitle">Live Audio Translation powered by Gemini AI | Eburon Development</p>
         </header>
 
+        <div class="grid">
+            <div class="card">
+                <h2 class="card-title">Audio Source</h2>
+                <div class="control-group">
+                    <label for="audioDevice">Select Audio Input Device</label>
+                    <select id="audioDevice">
+                        <option value="">Loading devices...</option>
+                    </select>
+                </div>
+                <div class="visualizer-container">
+                    <canvas id="visualizer"></canvas>
+                </div>
+                <div class="button-group">
+                    <button class="btn-primary" id="startBtn">Start</button>
+                    <button class="btn-secondary" id="shareAudioBtn">Share Audio</button>
+                    <button class="btn-danger" id="stopBtn" disabled>Stop</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">Translation Settings</h2>
+                <div class="control-group">
+                    <label for="sourceLang">Source Language (Speaking)</label>
+                    <select id="sourceLang">
+                        <option value="en-US">English</option>
+                        <option value="tl-PH" selected>Tagalog</option>
+                        <option value="es-ES">Spanish</option>
+                        <option value="fr-FR">French</option>
+                        <option value="de-DE">German</option>
+                        <option value="ja-JP">Japanese</option>
+                        <option value="ko-KR">Korean</option>
+                        <option value="zh-CN">Chinese (Simplified)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="targetLang">Target Language (Translation)</label>
+                    <select id="targetLang">
+                        <option value="en" selected>English</option>
+                        <option value="tl">Tagalog</option>
+                        <option value="es">Spanish</option>
+                        <option value="fr">French</option>
+                        <option value="de">German</option>
+                        <option value="ja">Japanese</option>
+                        <option value="ko">Korean</option>
+                        <option value="zh">Chinese (Simplified)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="apiKey">Gemini API Key</label>
+                    <input type="password" id="apiKey" placeholder="Enter your Gemini API key">
+                </div>
+            </div>
+        </div>
+
         <div class="card">
-            <div class="control-group">
-                <label for="audioDevice">Select Audio Input Device</label>
-                <select id="audioDevice">
-                    <option value="">Loading devices...</option>
-                </select>
-            </div>
-
-            <div class="visualizer-container">
-                <canvas id="visualizer"></canvas>
-            </div>
-
+            <h2 class="card-title">Status</h2>
             <div class="status-bar">
                 <div class="status-indicator" id="statusIndicator"></div>
                 <span class="status-text" id="statusText">Ready to start</span>
             </div>
-
-            <div class="button-group">
-                <button class="btn-start" id="startBtn">Start Transcription</button>
-                <button class="btn-share" id="shareAudioBtn">Share System Audio</button>
-                <button class="btn-stop" id="stopBtn" disabled>Stop Transcription</button>
-                <button class="btn-clear" id="clearBtn">Clear Transcript</button>
-            </div>
-
-            <div class="warning-box" id="deviceWarning">
-                <strong>⚠️ Important:</strong> The browser's transcription engine defaults to your <strong>System Default Microphone</strong>. 
-                If you don't see transcription text appearing, please set your selected device (e.g., Virtual Cable) as your computer's <strong>System Default Input</strong>.
-            </div>
-
-            <details>
-                <summary>How to transcribe Zoom Meetings?</summary>
-                <div class="guide-content">
-                    <p>To transcribe audio from Zoom, you have two options:</p>
-                    <br>
-                    <strong>Option 1: Share System Audio (Best for Web Zoom)</strong>
-                    <ol>
-                        <li>Click <strong>Share System Audio</strong> above.</li>
-                        <li>Select the tab or window playing the Zoom meeting.</li>
-                        <li>Ensure "Share tab audio" is checked.</li>
-                    </ol>
-                    <br>
-                    <strong>Option 2: Virtual Audio Cable (Best for Zoom App)</strong>
-                    <ol>
-                        <li>Install a Virtual Audio Cable (e.g., <a href="https://vb-audio.com/Cable/" target="_blank" rel="noopener noreferrer" class="link-accent">VB-Cable</a> or <a href="https://github.com/ExistentialAudio/BlackHole" target="_blank" rel="noopener noreferrer" class="link-accent">BlackHole</a> on Mac).</li>
-                        <li>In <strong>Zoom Settings > Audio</strong>, set "Speaker" to the Virtual Cable.</li>
-                        <li>In this app, select the Virtual Cable as the <strong>Input Device</strong>.</li>
-                        <li><strong>Crucial:</strong> Set the Virtual Cable as your computer's <strong>System Default Input</strong> if transcription doesn't start.</li>
-                    </ol>
-                </div>
-            </details>
         </div>
 
         <div class="card">
-            <h2 class="section-title">Live Transcription</h2>
-            <div class="transcription-box" id="transcriptionBox"></div>
+            <h2 class="card-title">Live Transcription & Translation</h2>
+            <div class="transcript-box" id="transcriptBox"></div>
         </div>
     </div>
 
@@ -520,30 +430,31 @@
         let analyser = null;
         let source = null;
         let animationId = null;
-        let selectedDeviceId = null;
-        let isSystemAudio = false;
+        let geminiWs = null;
+        let audioQueue = [];
+        let isPlaying = false;
 
         // DOM elements
         const audioDeviceSelect = document.getElementById('audioDevice');
+        const sourceLangSelect = document.getElementById('sourceLang');
+        const targetLangSelect = document.getElementById('targetLang');
+        const apiKeyInput = document.getElementById('apiKey');
         const startBtn = document.getElementById('startBtn');
         const shareAudioBtn = document.getElementById('shareAudioBtn');
         const stopBtn = document.getElementById('stopBtn');
-        const clearBtn = document.getElementById('clearBtn');
-        const transcriptionBox = document.getElementById('transcriptionBox');
+        const transcriptBox = document.getElementById('transcriptBox');
         const statusIndicator = document.getElementById('statusIndicator');
         const statusText = document.getElementById('statusText');
         const canvas = document.getElementById('visualizer');
         const canvasCtx = canvas.getContext('2d');
-        const deviceWarning = document.getElementById('deviceWarning');
 
         // Check browser support
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         
         if (!SpeechRecognition) {
-            updateStatus('error', 'Speech Recognition not supported in this browser. Please use Chrome, Edge, or Safari.');
+            updateStatus('error', 'Speech Recognition not supported. Please use Chrome, Edge, or Safari.');
             startBtn.disabled = true;
             shareAudioBtn.disabled = true;
-            return;
         }
 
         // Initialize Speech Recognition
@@ -556,77 +467,180 @@
             recognition = new SpeechRecognition();
             recognition.continuous = true;
             recognition.interimResults = true;
-            recognition.lang = 'en-US';
+            recognition.lang = sourceLangSelect.value;
 
             recognition.onstart = () => {
-                updateStatus('active', isSystemAudio ? 'Listening to System Audio...' : 'Listening...');
+                updateStatus('active', 'Listening and translating...');
                 startBtn.disabled = true;
                 shareAudioBtn.disabled = true;
                 stopBtn.disabled = false;
-                
-                // Show warning if we are using a specific device but can't guarantee binding
-                if (selectedDeviceId || isSystemAudio) {
-                    deviceWarning.style.display = 'block';
-                }
             };
 
             recognition.onresult = (event) => {
-                let interimTranscript = '';
                 let finalTranscript = '';
 
                 for (let i = event.resultIndex; i < event.results.length; i++) {
-                    const transcript = event.results[i][0].transcript;
                     if (event.results[i].isFinal) {
-                        finalTranscript += transcript + ' ';
-                    } else {
-                        interimTranscript += transcript;
+                        finalTranscript += event.results[i][0].transcript + ' ';
                     }
                 }
 
-                if (finalTranscript) {
-                    addTranscriptLine(finalTranscript.trim());
-                    // If we get results, the warning might not be needed, but safer to keep it 
-                    // or maybe hide it to reduce clutter? Let's keep it for now.
-                }
-
-                if (interimTranscript) {
-                    updateStatus('active', `Listening... (${interimTranscript.substring(0, 50)}...)`);
+                if (finalTranscript.trim()) {
+                    const text = finalTranscript.trim();
+                    addTranscriptLine(text);
+                    sendToGemini(text);
                 }
             };
 
             recognition.onerror = (event) => {
-                console.error('Speech recognition error:', event.error);
-                updateStatus('error', `Error: ${event.error}`);
-                if (event.error === 'no-speech') {
-                    updateStatus('active', 'No speech detected. Keep speaking...');
-                } else if (event.error === 'not-allowed') {
-                    updateStatus('error', 'Microphone access denied. Please allow microphone access.');
-                    stopTranscription();
+                console.error('Recognition error:', event.error);
+                if (event.error === 'not-allowed') {
+                    updateStatus('error', 'Microphone access denied');
+                    stopTranslation();
                 }
             };
 
             recognition.onend = () => {
-                if (stopBtn.disabled === false) {
+                if (!stopBtn.disabled) {
                     try {
-                        // Try to restart with the audio track if available
                         if (audioStream && audioStream.getAudioTracks().length > 0) {
                             const audioTrack = audioStream.getAudioTracks()[0];
                             try {
                                 recognition.start(audioTrack);
                             } catch (e) {
-                                // Fallback to default start if track binding not supported
-                                console.log('Audio track binding not supported, using default');
                                 recognition.start();
                             }
                         } else {
                             recognition.start();
                         }
                     } catch (e) {
-                        console.error('Error restarting recognition:', e);
-                        stopTranscription();
+                        console.error('Error restarting:', e);
+                        stopTranslation();
                     }
                 }
             };
+        }
+
+        // Initialize Gemini WebSocket
+        function initGemini() {
+            const apiKey = apiKeyInput.value.trim();
+            if (!apiKey) {
+                updateStatus('error', 'Please enter your Gemini API key');
+                return false;
+            }
+
+            try {
+                const url = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${apiKey}`;
+                geminiWs = new WebSocket(url);
+
+                geminiWs.onopen = () => {
+                    console.log('Gemini WebSocket connected');
+                    
+                    // Send initial configuration
+                    geminiWs.send(JSON.stringify({
+                        setup: {
+                            model: 'models/gemini-2.0-flash-exp',
+                            generation_config: {
+                                response_modalities: ['AUDIO']
+                            },
+                            system_instruction: {
+                                parts: [{
+                                    text: `You are a real-time translator. Translate the following text from ${getLanguageName(sourceLangSelect.value)} to ${targetLangSelect.options[targetLangSelect.selectedIndex].text}. Provide ONLY the translation, no explanations.`
+                                }]
+                            }
+                        }
+                    }));
+                };
+
+                geminiWs.onmessage = (event) => {
+                    try {
+                        const response = JSON.parse(event.data);
+                        if (response.serverContent && response.serverContent.modelTurn) {
+                            const parts = response.serverContent.modelTurn.parts;
+                            
+                            // Handle audio response
+                            if (parts && parts.length > 0) {
+                                parts.forEach(part => {
+                                    if (part.inlineData && part.inlineData.data) {
+                                        playTranslatedAudio(part.inlineData.data);
+                                    }
+                                    if (part.text) {
+                                        updateLastTranslation(part.text);
+                                    }
+                                });
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Error parsing Gemini response:', e);
+                    }
+                };
+
+                geminiWs.onerror = (error) => {
+                    console.error('Gemini WebSocket error:', error);
+                    updateStatus('error', 'Gemini connection failed. Check your API key.');
+                };
+
+                geminiWs.onclose = () => {
+                    console.log('Gemini WebSocket closed');
+                };
+
+                return true;
+            } catch (error) {
+                console.error('Error initializing Gemini:', error);
+                updateStatus('error', 'Failed to connect to Gemini');
+                return false;
+            }
+        }
+
+        // Send text to Gemini for translation
+        function sendToGemini(text) {
+            if (!geminiWs || geminiWs.readyState !== WebSocket.OPEN) {
+                console.error('Gemini WebSocket not connected');
+                return;
+            }
+
+            updateStatus('translating', 'Translating...');
+            
+            geminiWs.send(JSON.stringify({
+                client_content: {
+                    turns: [{
+                        role: 'user',
+                        parts: [{
+                            text: text
+                        }]
+                    }],
+                    turn_complete: true
+                }
+            }));
+        }
+
+        // Play translated audio
+        async function playTranslatedAudio(base64Audio) {
+            try {
+                // Decode base64 to ArrayBuffer
+                const binaryString = atob(base64Audio);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+
+                // Decode audio data
+                const audioBuffer = await audioContext.decodeAudioData(bytes.buffer);
+                
+                // Create source and play
+                const sourceNode = audioContext.createBufferSource();
+                sourceNode.buffer = audioBuffer;
+                sourceNode.connect(audioContext.destination);
+                sourceNode.start(0);
+                
+                updateStatus('active', 'Playing translation...');
+            } catch (error) {
+                console.error('Error playing audio:', error);
+            }
         }
 
         // Initialize Audio Visualizer
@@ -657,15 +671,13 @@
 
             function draw() {
                 animationId = requestAnimationFrame(draw);
-
                 analyser.getByteTimeDomainData(dataArray);
 
-                canvasCtx.fillStyle = 'rgb(19, 24, 41)'; // Matches --bg-secondary
+                canvasCtx.fillStyle = 'rgb(19, 24, 41)';
                 canvasCtx.fillRect(0, 0, width, height);
 
                 canvasCtx.lineWidth = 2;
-                canvasCtx.strokeStyle = 'rgb(99, 102, 241)'; // Matches --accent
-
+                canvasCtx.strokeStyle = 'rgb(99, 102, 241)';
                 canvasCtx.beginPath();
 
                 const sliceWidth = width * 1.0 / bufferLength;
@@ -691,7 +703,7 @@
             draw();
         }
 
-        // Enumerate audio devices
+        // Load audio devices
         async function loadAudioDevices() {
             try {
                 await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -703,7 +715,6 @@
                 
                 if (audioInputs.length === 0) {
                     audioDeviceSelect.innerHTML = '<option value="">No audio devices found</option>';
-                    updateStatus('error', 'No audio input devices found');
                     return;
                 }
 
@@ -714,23 +725,18 @@
                     audioDeviceSelect.appendChild(option);
                 });
 
-                selectedDeviceId = audioInputs[0].deviceId;
                 updateStatus('ready', 'Ready to start');
             } catch (error) {
-                console.error('Error loading audio devices:', error);
+                console.error('Error loading devices:', error);
                 audioDeviceSelect.innerHTML = '<option value="">Error loading devices</option>';
-                updateStatus('error', 'Failed to access audio devices. Please grant microphone permissions.');
             }
         }
 
-        // Start transcription with Microphone
-        async function startTranscription() {
+        // Start translation
+        async function startTranslation(useSystemAudio = false) {
             try {
-                isSystemAudio = false;
-                selectedDeviceId = audioDeviceSelect.value;
-
-                if (!selectedDeviceId) {
-                    updateStatus('error', 'Please select an audio device');
+                // Initialize Gemini first
+                if (!initGemini()) {
                     return;
                 }
 
@@ -738,83 +744,55 @@
                     audioStream.getTracks().forEach(track => track.stop());
                 }
 
-                audioStream = await navigator.mediaDevices.getUserMedia({
-                    audio: {
-                        deviceId: { exact: selectedDeviceId },
-                        echoCancellation: false,
-                        noiseSuppression: false,
-                        autoGainControl: false
+                if (useSystemAudio) {
+                    audioStream = await navigator.mediaDevices.getDisplayMedia({
+                        video: true,
+                        audio: {
+                            echoCancellation: false,
+                            noiseSuppression: false,
+                            autoGainControl: false
+                        }
+                    });
+
+                    if (audioStream.getAudioTracks().length === 0) {
+                        updateStatus('error', 'No audio track found. Check "Share tab audio"');
+                        return;
                     }
-                });
+                } else {
+                    const deviceId = audioDeviceSelect.value;
+                    if (!deviceId) {
+                        updateStatus('error', 'Please select an audio device');
+                        return;
+                    }
+
+                    audioStream = await navigator.mediaDevices.getUserMedia({
+                        audio: {
+                            deviceId: { exact: deviceId },
+                            echoCancellation: false,
+                            noiseSuppression: false,
+                            autoGainControl: false
+                        }
+                    });
+                }
 
                 initVisualizer(audioStream);
                 initRecognition();
                 
-                // Try to pass the audio track to recognition.start() for proper device binding
                 const audioTrack = audioStream.getAudioTracks()[0];
                 try {
                     recognition.start(audioTrack);
-                    console.log('Started recognition with audio track:', audioTrack.label);
                 } catch (e) {
-                    // Fallback to default microphone if track binding not supported
-                    console.log('Audio track binding not supported, falling back to default microphone');
                     recognition.start();
                 }
                 
             } catch (error) {
-                console.error('Error starting transcription:', error);
+                console.error('Error starting translation:', error);
                 updateStatus('error', `Failed to start: ${error.message}`);
             }
         }
 
-        // Start transcription with System Audio (getDisplayMedia)
-        async function startSystemAudioTranscription() {
-            try {
-                isSystemAudio = true;
-                
-                if (audioStream) {
-                    audioStream.getTracks().forEach(track => track.stop());
-                }
-
-                // Request system audio via screen sharing
-                audioStream = await navigator.mediaDevices.getDisplayMedia({
-                    video: true, // Video is required to get audio in most browsers
-                    audio: {
-                        echoCancellation: false,
-                        noiseSuppression: false,
-                        autoGainControl: false
-                    }
-                });
-
-                // Check if we got an audio track
-                if (audioStream.getAudioTracks().length === 0) {
-                    updateStatus('error', 'No audio track found. Did you check "Share tab audio"?');
-                    audioStream.getTracks().forEach(track => track.stop());
-                    return;
-                }
-
-                initVisualizer(audioStream);
-                initRecognition();
-                
-                // Try to pass the audio track to recognition.start() for proper device binding
-                const audioTrack = audioStream.getAudioTracks()[0];
-                try {
-                    recognition.start(audioTrack);
-                    console.log('Started recognition with system audio track');
-                } catch (e) {
-                    // Fallback to default microphone if track binding not supported
-                    console.log('Audio track binding not supported, falling back to default microphone');
-                    recognition.start();
-                }
-
-            } catch (error) {
-                console.error('Error starting system audio:', error);
-                updateStatus('error', `Failed to share audio: ${error.message}`);
-            }
-        }
-
-        // Stop transcription
-        function stopTranscription() {
+        // Stop translation
+        function stopTranslation() {
             if (recognition) {
                 recognition.stop();
             }
@@ -828,17 +806,21 @@
                 cancelAnimationFrame(animationId);
             }
 
+            if (geminiWs) {
+                geminiWs.close();
+            }
+
             startBtn.disabled = false;
             shareAudioBtn.disabled = false;
             stopBtn.disabled = true;
-            deviceWarning.style.display = 'none';
             updateStatus('ready', 'Stopped. Ready to start again.');
         }
 
-        // Add transcript line to the box
+        // Add transcript line
         function addTranscriptLine(text) {
             const line = document.createElement('div');
             line.className = 'transcript-line';
+            line.id = `line-${Date.now()}`;
 
             const timestamp = document.createElement('div');
             timestamp.className = 'transcript-timestamp';
@@ -846,19 +828,29 @@
 
             const transcriptText = document.createElement('div');
             transcriptText.className = 'transcript-text';
-            transcriptText.textContent = text;
+            transcriptText.textContent = `[${sourceLangSelect.options[sourceLangSelect.selectedIndex].text}] ${text}`;
+
+            const translationText = document.createElement('div');
+            translationText.className = 'translation-text';
+            translationText.textContent = 'Translating...';
 
             line.appendChild(timestamp);
             line.appendChild(transcriptText);
-            transcriptionBox.appendChild(line);
+            line.appendChild(translationText);
+            transcriptBox.appendChild(line);
 
-            transcriptionBox.scrollTop = transcriptionBox.scrollHeight;
+            transcriptBox.scrollTop = transcriptBox.scrollHeight;
         }
 
-        // Clear transcript
-        function clearTranscript() {
-            transcriptionBox.innerHTML = '';
-            updateStatus('ready', 'Transcript cleared. Ready to start.');
+        // Update last translation
+        function updateLastTranslation(translation) {
+            const lastLine = transcriptBox.lastElementChild;
+            if (lastLine) {
+                const translationDiv = lastLine.querySelector('.translation-text');
+                if (translationDiv) {
+                    translationDiv.textContent = `[${targetLangSelect.options[targetLangSelect.selectedIndex].text}] ${translation}`;
+                }
+            }
         }
 
         // Update status
@@ -867,6 +859,8 @@
             
             if (state === 'active') {
                 statusIndicator.classList.add('active');
+            } else if (state === 'translating') {
+                statusIndicator.classList.add('translating');
             } else if (state === 'error') {
                 statusIndicator.classList.add('error');
             }
@@ -874,18 +868,25 @@
             statusText.textContent = message;
         }
 
-        // Event listeners
-        startBtn.addEventListener('click', startTranscription);
-        shareAudioBtn.addEventListener('click', startSystemAudioTranscription);
-        stopBtn.addEventListener('click', stopTranscription);
-        clearBtn.addEventListener('click', clearTranscript);
+        // Helper function
+        function getLanguageName(code) {
+            const langMap = {
+                'en-US': 'English',
+                'tl-PH': 'Tagalog',
+                'es-ES': 'Spanish',
+                'fr-FR': 'French',
+                'de-DE': 'German',
+                'ja-JP': 'Japanese',
+                'ko-KR': 'Korean',
+                'zh-CN': 'Chinese'
+            };
+            return langMap[code] || 'Unknown';
+        }
 
-        audioDeviceSelect.addEventListener('change', (e) => {
-            selectedDeviceId = e.target.value;
-            if (!startBtn.disabled) {
-                updateStatus('active', 'Device changed. Stop and Start to apply.');
-            }
-        });
+        // Event listeners
+        startBtn.addEventListener('click', () => startTranslation(false));
+        shareAudioBtn.addEventListener('click', () => startTranslation(true));
+        stopBtn.addEventListener('click', stopTranslation);
 
         window.addEventListener('resize', () => {
             if (canvas) {

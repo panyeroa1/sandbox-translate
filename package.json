@@ -9,19 +9,22 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@google/genai": "^1.4.0",
+    "classnames": "^2.5.1",
+    "eventemitter3": "^5.0.1",
+    "jsrsasign": "11.1.0",
+    "lodash": "^4.17.21",
+    "path": "^0.12.7",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "@google/genai": "^1.4.0",
-    "eventemitter3": "^5.0.1",
-    "lodash": "^4.17.21",
     "vite": "^6.3.5",
-    "classnames": "^2.5.1",
-    "zustand": "^5.0.5",
-    "path": "^0.12.7",
-    "jsrsasign": "11.1.0"
+    "zustand": "^5.0.5"
   },
   "devDependencies": {
+    "@types/jsrsasign": "^10.5.15",
     "@types/node": "^22.14.0",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.0.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"

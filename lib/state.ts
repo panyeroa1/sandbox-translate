@@ -60,8 +60,8 @@ export const useSettings = create<{
     joinUrl: '',
   },
   zoomCredentials: {
-    clientId: '',
-    clientSecret: '',
+    clientId: 'VCMkJFWDQPGQb0_gtAeehQ',
+    clientSecret: 'EkE38ouAyCD4ETvNzsyHu0zObMD4jv6z',
   },
   setSystemPrompt: prompt => set({ systemPrompt: prompt }),
   setModel: model => set({ model }),

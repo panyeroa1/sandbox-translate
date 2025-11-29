@@ -181,27 +181,32 @@ export default function StreamingConsole() {
     if (mediaMode === 'zoom' && zoomRootRef.current) {
         const initZoom = async () => {
             try {
-                // Load dependencies
-                loadStyles('https://source.zoom.us/embedded/3.10.0/lib/zoom-meeting-embedded-3.10.0.css');
-                await loadScript('https://source.zoom.us/embedded/3.10.0/lib/zoom-meeting-embedded-3.10.0.min.js');
+                // Load dependencies - using latest version
+                loadStyles('https://source.zoom.us/3.10.1/css/bootstrap.css');
+                loadStyles('https://source.zoom.us/3.10.1/css/react-select.css');
+                await loadScript('https://source.zoom.us/3.10.1/lib/vendor/react.min.js');
+                await loadScript('https://source.zoom.us/3.10.1/lib/vendor/react-dom.min.js');
+                await loadScript('https://source.zoom.us/3.10.1/lib/vendor/redux.min.js');
+                await loadScript('https://source.zoom.us/3.10.1/lib/vendor/redux-thunk.min.js');
+                await loadScript('https://source.zoom.us/3.10.1/lib/vendor/lodash.min.js');
+                await loadScript('https://source.zoom.us/3.10.1/index.js');
 
-                const ZoomMtgEmbedded = (window as any).ZoomMtgEmbedded;
-                if (!ZoomMtgEmbedded) return;
+                const ZoomMtg = (window as any).ZoomMtg;
+                if (!ZoomMtg) {
+                    setZoomError("ZoomMtg not loaded");
+                    return;
+                }
 
-                const client = ZoomMtgEmbedded.createClient();
-                setZoomClient(client);
+                ZoomMtg.preLoadWasm();
+                ZoomMtg.prepareWebSDK();
                 
-                // Initialize
                 const meetingSDKElement = document.getElementById('meetingSDKElement');
                 if(!meetingSDKElement) return;
 
-                await client.init({
-                    zoomAppRoot: meetingSDKElement,
-                    language: 'en-US',
-                });
+                setZoomClient(ZoomMtg);
             } catch (err: any) {
                 console.error("Zoom Init Error", err);
-                setZoomError("Failed to load Zoom SDK. Check console.");
+                setZoomError(`Failed to load Zoom SDK: ${err.message}`);
             }
         };
         initZoom();
@@ -210,8 +215,6 @@ export default function StreamingConsole() {
     // Cleanup on unmount or mode switch
     return () => {
         if (zoomClient) {
-            // Note: Embedded client doesn't have a clean destroy method in all versions,
-            // but removing the DOM element usually resets it.
             setZoomClient(null);
         }
     }
@@ -228,15 +231,28 @@ export default function StreamingConsole() {
                 0 // 0 for participant, 1 for host
             );
 
-            zoomClient.join({
-                sdkKey: zoomCredentials.clientId,
-                signature: signature,
-                meetingNumber: zoomConfig.meetingId,
-                password: zoomConfig.passcode,
-                userName: zoomConfig.userName,
-            }).catch((e: any) => {
-                console.error(e);
-                setZoomError(e.reason || "Join Failed");
+            zoomClient.init({
+                leaveUrl: window.location.origin,
+                success: () => {
+                    zoomClient.join({
+                        signature: signature,
+                        sdkKey: zoomCredentials.clientId,
+                        meetingNumber: zoomConfig.meetingId,
+                        passWord: zoomConfig.passcode,
+                        userName: zoomConfig.userName,
+                        success: (success: any) => {
+                            console.log('Join meeting success', success);
+                        },
+                        error: (error: any) => {
+                            console.error('Join meeting error', error);
+                            setZoomError(error.reason || "Join Failed");
+                        }
+                    });
+                },
+                error: (error: any) => {
+                    console.error('Init error', error);
+                    setZoomError("SDK Init Failed");
+                }
             });
         } catch (e) {
             setZoomError("Error generating signature or joining.");
