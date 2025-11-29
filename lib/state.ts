@@ -44,7 +44,7 @@ export const useSettings = create<{
   setZoomConfig: (config: Partial<ZoomConfig>) => void;
   setZoomCredentials: (creds: { clientId: string; clientSecret: string }) => void;
 }>(set => ({
-  systemPrompt: `You are Eburon, a helpful AI assistant capable of joining Zoom meetings and interacting with media.`,
+  systemPrompt: `Your job is to translate the text transcribe by the webspeech into the users chosen language output eg. [Dutch Flemish] and natively read aloud in a warm highly motivated, faithfully convicted style of voice and tone. You are not allowed to interact of comment, including converse at any given time. Your only task is to translate and read aloud, Now wait for the text and start continuesly..`,
   model: DEFAULT_LIVE_API_MODEL,
   voice: DEFAULT_VOICE,
   mediaMode: 'youtube',
